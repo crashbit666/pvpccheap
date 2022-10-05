@@ -1,10 +1,10 @@
 # This is a program that search the best hours to charge electric devices.
 import json
+import time
+
 import requests as requests
 import datetime
 from secrets import secrets
-
-status = bool
 
 
 def get_best_hours(max_items):
@@ -39,17 +39,20 @@ def get_best_hours(max_items):
     return hours
 
 
+def get_dates():
+    return int(datetime.date.today().strftime("%d")), int(datetime.datetime.now().strftime("%H"))
+
+
 def check_status():
     # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
     # will be False
-    current_day = datetime.date.today().strftime("%d")
-    current_time = datetime.datetime.now().strftime("%H")
+    current_day, current_time = get_dates()
     best_hours = get_best_hours(7)
 
     ''' Debug'''
-    print("dia actual ---->", current_day)
-    print("hora actual --->", current_time)
-    print("millors hores ->", best_hours)
+    print("current_day ---->", current_day)
+    print("current_time --->", current_time)
+    print("best_hours ----->", best_hours)
     ''''''
 
     if current_time in best_hours:
@@ -73,7 +76,23 @@ class ISwitch:
 
 # Start point
 if __name__ == '__main__':
-    Switch = ISwitch(True) # We need to add/get var to remember status of switch first time run
-    print(Switch.actual_status)
+
+    delay = 10    # 60 seconds delay between tests
+
+    # Initialize classes
+    Switch = ISwitch(True)    # We need to add/get var to remember status of switch first time run
+
+    # Infinite loop
+    while True:
+        print("End Sleep")
+        if check_status() and not Switch.actual_status:
+            print("Activating")
+            Switch.activate()
+        elif not check_status() and Switch.actual_status:
+            print("Deactivating")
+            Switch.deactivate()
+        else:
+            print("None Operate")
+        time.sleep(delay)
 
 # Final line
