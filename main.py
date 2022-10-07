@@ -1,9 +1,9 @@
 # This is a program that search the best hours to charge electric devices.
+import datetime
 import json
 import time
-
+from webhooks import do_webhooks_request
 import requests as requests
-import datetime
 from secrets import secrets
 
 
@@ -80,17 +80,18 @@ if __name__ == '__main__':
     delay = 10    # 60 seconds delay between tests
 
     # Initialize classes
-    Switch = ISwitch(True)    # We need to add/get var to remember status of switch first time run
+    Switch = ISwitch(False)    # We need to add/get var to remember status of switch first time run
 
     # Infinite loop
     while True:
-        print("End Sleep")
         if check_status() and not Switch.actual_status:
             print("Activating")
             Switch.activate()
+            do_webhooks_request('pvpc_down')
         elif not check_status() and Switch.actual_status:
             print("Deactivating")
             Switch.deactivate()
+            do_webhooks_request('pvpc_high')
         else:
             print("None Operate")
         time.sleep(delay)
