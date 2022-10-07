@@ -78,9 +78,8 @@ def delay_to_oclock():
 
 class ISwitch:
 
-    def __init__(self, actual_status, new_status):
+    def __init__(self, actual_status):
         self.actual_status = actual_status
-        self.new_status = new_status
 
     def activate(self):
         print('Activating ...')
@@ -95,7 +94,7 @@ class ISwitch:
 if __name__ == '__main__':
 
     # Instance class
-    Scooter_Switch = ISwitch(False, False)
+    Scooter_Switch = ISwitch(False)
 
     # Infinite loop
     while True:
@@ -112,15 +111,4 @@ if __name__ == '__main__':
                 do_webhooks_request('pvpc_high')
 
         time.sleep(delay)
-
-        '''
-        if check_status() and not Scooter_Switch.actual_status:
-            Scooter_Switch.activate()
-            do_webhooks_request('pvpc_down')
-        elif not check_status() and Scooter_Switch.actual_status:
-            Scooter_Switch.deactivate()
-            do_webhooks_request('pvpc_high')
-        time.sleep(delay)
-        '''
-
 # Final line
