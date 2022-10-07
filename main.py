@@ -43,57 +43,83 @@ def get_dates():
     return int(datetime.date.today().strftime("%d")), int(datetime.datetime.now().strftime("%H"))
 
 
-def check_status():
+def cheap_price():
     # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
     # will be False
     current_day, current_time = get_dates()
     best_hours = get_best_hours(7)
 
-    ''' Debug'''
+    ''''''
     print("current_day ---->", current_day)
+    print("current_day ---->", type(current_day))
+
     print("current_time --->", current_time)
+    print("current_time --->", type(current_time))
+
     print("best_hours ----->", best_hours)
+    print("best_hours ----->", type(best_hours))
     ''''''
 
     if current_time in best_hours:
+        print('cheap_price = True')
         return True
     else:
+        print('cheap_price = False')
         return False
+
+
+def delay_to_oclock():
+    minutes = int(datetime.datetime.now().strftime("%M"))
+    print('minutes = '+str(minutes))
+    print('delay_to_oclock = ' + str(int(60 - minutes)))
+    return 60 - minutes
 
 
 class ISwitch:
 
-    def __init__(self, new_status):
-        self.actual_status = check_status()
+    def __init__(self, actual_status, new_status):
+        self.actual_status = actual_status
         self.new_status = new_status
 
     def activate(self):
+        print('Activating ...')
         self.actual_status = True
 
     def deactivate(self):
+        print('Deactivating ...')
         self.actual_status = False
 
 
 # Start point
 if __name__ == '__main__':
 
-    delay = 10    # 60 seconds delay between tests
-
-    # Initialize classes
-    Switch = ISwitch(False)    # We need to add/get var to remember status of switch first time run
+    # Instance class
+    Scooter_Switch = ISwitch(False, False)
 
     # Infinite loop
     while True:
-        if check_status() and not Switch.actual_status:
-            print("Activating")
-            Switch.activate()
-            do_webhooks_request('pvpc_down')
-        elif not check_status() and Switch.actual_status:
-            print("Deactivating")
-            Switch.deactivate()
-            do_webhooks_request('pvpc_high')
+        print('-----------------------------------')
+        delay = 60 * delay_to_oclock()  # delay until oclock
+
+        if cheap_price():
+            if not Scooter_Switch.actual_status:
+                Scooter_Switch.activate()
+                do_webhooks_request('pvpc_down')
         else:
-            print("None Operate")
+            if Scooter_Switch.actual_status:
+                Scooter_Switch.deactivate()
+                do_webhooks_request('pvpc_high')
+
         time.sleep(delay)
+
+        '''
+        if check_status() and not Scooter_Switch.actual_status:
+            Scooter_Switch.activate()
+            do_webhooks_request('pvpc_down')
+        elif not check_status() and Scooter_Switch.actual_status:
+            Scooter_Switch.deactivate()
+            do_webhooks_request('pvpc_high')
+        time.sleep(delay)
+        '''
 
 # Final line
