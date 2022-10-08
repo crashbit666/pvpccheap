@@ -95,20 +95,27 @@ if __name__ == '__main__':
 
     # Instance class
     Scooter_Switch = ISwitch(False)
+    Boiler_Switch = ISwitch(False)
 
     # Infinite loop
     while True:
         print('-----------------------------------')
-        delay = 60 * delay_to_oclock()  # delay until oclock
+        delay = 60 * delay_to_oclock()  # get delay time until o'clock
 
         if cheap_price():
             if not Scooter_Switch.actual_status:
                 Scooter_Switch.activate()
-                do_webhooks_request('pvpc_down')
+                do_webhooks_request('scooter_pvpc_down')
+            if not Boiler_Switch.actual_status:
+                Boiler_Switch.activate()
+                do_webhooks_request('boiler_pvpc_down')
         else:
             if Scooter_Switch.actual_status:
                 Scooter_Switch.deactivate()
-                do_webhooks_request('pvpc_high')
+                do_webhooks_request('scooter_pvpc_high')
+            if Boiler_Switch.actual_status:
+                Boiler_Switch.deactivate()
+                do_webhooks_request('boiler_pvpc_high')
 
         time.sleep(delay)
 # Final line
