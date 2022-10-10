@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
         if cheap_price():
             if not Scooter_Switch.actual_status:
+                print('Aactivant....')
                 Scooter_Switch.activate()
                 do_webhooks_request('scooter_pvpc_down')
             if not Boiler_Switch.actual_status:
@@ -111,6 +112,7 @@ if __name__ == '__main__':
                 do_webhooks_request('boiler_pvpc_down')
         else:
             if Scooter_Switch.actual_status:
+                print('Desactivant...')
                 Scooter_Switch.deactivate()
                 do_webhooks_request('scooter_pvpc_high')
             if Boiler_Switch.actual_status:
