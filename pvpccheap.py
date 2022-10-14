@@ -8,7 +8,7 @@ import requests as requests
 from secrets import secrets
 
 
-def get_best_hours(max_items):
+def get_best_hours(max_items, adate):
     token = secrets.get('TOKEN')
     url = secrets.get('URL')
     headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
@@ -17,19 +17,16 @@ def get_best_hours(max_items):
     pkw = []
     hours = []
 
-    response = requests.get(url, headers=headers)
+    response = requests.get(url+'?start_date='+str(adate)+'T00:00:00.000+02:00'+'&end_date='+str(adate)
+                            + 'T23:00:00.000+02:00' + '&geo_ids[]=8741', headers=headers)
 
     if response.status_code == 200:
         json_data = json.loads(response.text)
+        print(json_data)
         vals = json_data['indicator']['values']
         prices = [x['value'] for x in vals]
-        hour = 0
-        x = 0
         for price in prices:
-            if vals[x].get('geo_id') == 8741:
-                pkw.append(round(price / 1000, 4))
-                hour += 1
-            x += 1
+            pkw.append(round(price / 1000, 4))
     else:
         pkw = "Error connecting to database"
 
@@ -41,14 +38,16 @@ def get_best_hours(max_items):
 
 
 def get_dates():
-    return int(datetime.date.today().strftime("%d")), int(datetime.datetime.now().strftime("%H"))
+    return datetime.date.today(), int(datetime.datetime.now().strftime("%H"))
 
 
-def cheap_price():
+def cheap_price(last_day_check_in, first_best_hours):
     # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
     # will be False
     current_day, current_time = get_dates()
-    best_hours = get_best_hours(7)
+
+    if last_day_check_in != current_day or first_best_hours is None:
+        best_hours = get_best_hours(7, current_day)
 
     ''''''
     print("current_day ---->", current_day)
@@ -96,13 +95,16 @@ if __name__ == '__main__':
     # Instance class
     Scooter_Switch = ISwitch(False)
     Boiler_Switch = ISwitch(False)
+    best_hours = None
 
     # Infinite loop
     while True:
         print('-----------------------------------')
         delay = 60 * delay_to_oclock()  # get delay time until o'clock
 
-        if cheap_price():
+        last_day_check = get_dates()[0]
+
+        if cheap_price(last_day_check, best_hours):
             if not Scooter_Switch.actual_status:
                 print('Aactivant....')
                 Scooter_Switch.activate()
