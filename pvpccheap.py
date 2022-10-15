@@ -8,7 +8,7 @@ import requests as requests
 from secrets import secrets
 
 
-def get_best_hours(max_items, adate):
+def get_best_hours(max_items, actual_date):
     token = secrets.get('TOKEN')
     url = secrets.get('URL')
     headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
@@ -17,8 +17,8 @@ def get_best_hours(max_items, adate):
     pkw = []
     hours = []
 
-    response = requests.get(url+'?start_date='+str(adate)+'T00:00:00.000+02:00'+'&end_date='+str(adate)
-                            + 'T23:00:00.000+02:00' + '&geo_ids[]=8741', headers=headers)
+    response = requests.get(url + '?start_date=' + str(actual_date) + 'T00:00:00.000+02:00' + '&end_date='
+                            + str(actual_date) + 'T23:00:00.000+02:00' + '&geo_ids[]=8741', headers=headers)
 
     if response.status_code == 200:
         json_data = json.loads(response.text)
@@ -41,26 +41,12 @@ def get_dates():
     return datetime.date.today(), int(datetime.datetime.now().strftime("%H"))
 
 
-def cheap_price(last_day_check_in, first_best_hours):
+def cheap_price(in_cheap_hours):
     # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
     # will be False
-    current_day, current_time = get_dates()
+    current_time = get_dates()[1]
 
-    if last_day_check_in != current_day or first_best_hours is None:
-        best_hours = get_best_hours(7, current_day)
-
-    ''''''
-    print("current_day ---->", current_day)
-    print("current_day ---->", type(current_day))
-
-    print("current_time --->", current_time)
-    print("current_time --->", type(current_time))
-
-    print("best_hours ----->", best_hours)
-    print("best_hours ----->", type(best_hours))
-    ''''''
-
-    if current_time in best_hours:
+    if current_time in in_cheap_hours:
         print('cheap_price = True')
         return True
     else:
@@ -81,7 +67,7 @@ class ISwitch:
         self.actual_status = actual_status
 
     def activate(self):
-        print('Activating ...')
+        print('Activating ISwitch...')
         self.actual_status = True
 
     def deactivate(self):
@@ -95,18 +81,25 @@ if __name__ == '__main__':
     # Instance class
     Scooter_Switch = ISwitch(False)
     Boiler_Switch = ISwitch(False)
-    best_hours = None
+
+    # Initialize current_day, current_time and cheap_hours
+    current_day = get_dates()[0]
+    cheap_hours = get_best_hours(7, current_day)
 
     # Infinite loop
     while True:
         print('-----------------------------------')
         delay = 60 * delay_to_oclock()  # get delay time until o'clock
 
-        last_day_check = get_dates()[0]
+        # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
+        if current_day != get_dates()[0]:
+            print('Updating dates and cheap_hours ...')
+            current_day = get_dates()[0]
+            cheap_hours = get_best_hours(7, current_day)
 
-        if cheap_price(last_day_check, best_hours):
+        if cheap_price(cheap_hours):
             if not Scooter_Switch.actual_status:
-                print('Aactivant....')
+                print('Activating....')
                 Scooter_Switch.activate()
                 do_webhooks_request('scooter_pvpc_down')
             if not Boiler_Switch.actual_status:
@@ -114,7 +107,7 @@ if __name__ == '__main__':
                 do_webhooks_request('boiler_pvpc_down')
         else:
             if Scooter_Switch.actual_status:
-                print('Desactivant...')
+                print('Deactivating...')
                 Scooter_Switch.deactivate()
                 do_webhooks_request('scooter_pvpc_high')
             if Boiler_Switch.actual_status:
