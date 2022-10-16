@@ -2,13 +2,14 @@
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](http://forthebadge.com)
 [![forthebadge](http://forthebadge.com/images/badges/built-with-love.svg)](http://forthebadge.com)
+[![forthebadge](https://www.gnu.org/graphics/gplv3-or-later-sm.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 A Python program to control electricity price in Spain. PVPC and "Red Eléctrica Española"
 
 # Table of contents
 
 - [Usage](#usage)
-  - `screen -U pvpccheap`
+  - `screen -U python pvpccheap.py`
 - [Installation](#installation)
 - [Updating](#updating)
 - [Uninstallation](#uninstallation)
@@ -19,7 +20,7 @@ A Python program to control electricity price in Spain. PVPC and "Red Eléctrica
 
 [(Back to top)](#table-of-contents)
 
-Man pages haven't added yet. Future see `man colorls`.
+Man pages haven't added yet. Future see `man pvpccheap`.
 
 ### Flags
 
@@ -32,7 +33,7 @@ Man pages haven't added yet. Future see `man colorls`.
 3. Execute screen and pvpccheap
     ```sh
     screen -U
-    python pvpccheap
+    python pvpccheap.py
     ```
 
 # Updating
@@ -67,4 +68,4 @@ Your contributions are always welcome!
 [(Back to top)](#table-of-contents)
 
 
-GPL v2 License - [Athitya Kumar](https://github.com/athityakumar/). Please have a look at the [LICENSE.md](LICENSE.md) for more details.
+GPL v3 License - [Crashbit](https://github.com/crashbit666/). Please have a look at the [LICENSE.md](LICENSE.md) for more details.
