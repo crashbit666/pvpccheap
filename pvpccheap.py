@@ -38,7 +38,7 @@ def get_best_hours(max_items, actual_date):
 
 
 def get_dates():
-    return datetime.date.today(), int(datetime.datetime.now().strftime("%H"))
+    return datetime.date.today(), int(datetime.datetime.now().strftime("%H")), datetime.date.today().weekday()
 
 
 def cheap_price(in_cheap_hours):
@@ -81,10 +81,17 @@ if __name__ == '__main__':
     # Instance class
     Scooter_Switch = ISwitch(False)
     Boiler_Switch = ISwitch(False)
+    Papas_Stove = ISwitch(False)
+    Enzo_Stove = ISwitch(False)
 
     # Initialize current_day, current_time and cheap_hours
     current_day = get_dates()[0]
+    current_week_day = get_dates()[2]
     cheap_hours = get_best_hours(7, current_day)
+    papas_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
+    papas_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 19, 20, 21, 22, 23, 24]
+    enzo_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
+    enzo_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 14, 15, 16, 19, 20, 21, 22, 23, 24]
 
     # Infinite loop
     while True:
@@ -95,6 +102,7 @@ if __name__ == '__main__':
         if current_day != get_dates()[0]:
             print('Updating dates and cheap_hours ...')
             current_day = get_dates()[0]
+            current_week_day = get_dates()[2]
             cheap_hours = get_best_hours(7, current_day)
 
         if cheap_price(cheap_hours):
@@ -105,6 +113,15 @@ if __name__ == '__main__':
             if not Boiler_Switch.actual_status:
                 Boiler_Switch.activate()
                 do_webhooks_request('boiler_pvpc_down')
+            if not Papas_Stove.actual_status:
+                if current_week_day < 5:
+                    if cheap_hours in papas_sleep_hours:
+                        Papas_Stove.activate()
+                        do_webhooks_request('papas_stove_pvpc_down')
+                else:
+                    if cheap_hours in papas_sleep_hours_weekend:
+                        Papas_Stove.activate()
+                        do_webhooks_request('papas_stove_pvpc_down')
         else:
             if Scooter_Switch.actual_status:
                 print('Deactivating...')
@@ -113,6 +130,12 @@ if __name__ == '__main__':
             if Boiler_Switch.actual_status:
                 Boiler_Switch.deactivate()
                 do_webhooks_request('boiler_pvpc_high')
+            if Papas_Stove.actual_status:
+                Papas_Stove.deactivate()
+                do_webhooks_request('papas_stove_pvpc_high')
+            if Enzo_Stove.actual_status:
+                Enzo_Stove.deactivate()
+                do_webhooks_request('enzo_stove_pvpc_high')
 
         time.sleep(delay)
 # Final line
