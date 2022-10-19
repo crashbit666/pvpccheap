@@ -78,8 +78,9 @@ if __name__ == '__main__':
     Enzo_Stove = ISwitch(False)
 
     # Initialize current_day, current_time and cheap_hours
+    max_hours = 6
     current_day, current_time, current_week_day = get_dates()
-    cheap_hours = get_best_hours(7, current_day)
+    cheap_hours = get_best_hours(max_hours, current_day)
     papas_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
     papas_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 19, 20, 21, 22, 23, 24]
     enzo_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
@@ -96,7 +97,7 @@ if __name__ == '__main__':
         if current_day != get_dates()[0]:
             current_day = get_dates()[0]
             current_week_day = get_dates()[2]
-            cheap_hours = get_best_hours(7, current_day)
+            cheap_hours = get_best_hours(max_hours, current_day)
 
         if cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
