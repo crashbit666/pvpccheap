@@ -76,6 +76,11 @@ if __name__ == '__main__':
     Papas_Stove = ISwitch(False)
     Enzo_Stove = ISwitch(False)
 
+    do_webhooks_request('scooter_pvpc_high')
+    do_webhooks_request('boiler_pvpc_high')
+    do_webhooks_request('papas_stove_pvpc_high')
+    do_webhooks_request('enzo_stove_pvpc_high')
+
     # Initialize current_day, current_time and cheap_hours
     max_hours = 6
     current_day, current_time, current_week_day = get_dates()
@@ -113,6 +118,16 @@ if __name__ == '__main__':
                     if current_time in papas_sleep_hours_weekend:
                         Papas_Stove.activate()
                         do_webhooks_request('papas_stove_pvpc_down')
+            if not Enzo_Stove.actual_status:
+                if current_week_day < 5:
+                    if current_time in enzo_sleep_hours:
+                        Enzo_Stove.activate()
+                        do_webhooks_request('enzo_stove_pvpc_down')
+                else:
+                    if current_time in enzo_sleep_hours_weekend:
+                        Enzo_Stove.activate()
+                        do_webhooks_request('enzo_stove_pvpc_down')
+
         else:
             if Scooter_Switch.actual_status:
                 Scooter_Switch.deactivate()
