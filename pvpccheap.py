@@ -41,12 +41,11 @@ def get_dates():
     return datetime.date.today(), int(datetime.datetime.now().strftime("%H")), datetime.date.today().weekday()
 
 
-def cheap_price(in_cheap_hours):
+def cheap_price(in_cheap_hours, in_current_time):
     # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
     # will be False
-    current_time = get_dates()[1]
 
-    if current_time in in_cheap_hours:
+    if in_current_time in in_cheap_hours:
         print('cheap_price = True')
         return True
     else:
@@ -85,8 +84,7 @@ if __name__ == '__main__':
     Enzo_Stove = ISwitch(False)
 
     # Initialize current_day, current_time and cheap_hours
-    current_day = get_dates()[0]
-    current_week_day = get_dates()[2]
+    current_day, current_time, current_week_day = get_dates()
     cheap_hours = get_best_hours(7, current_day)
     papas_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
     papas_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 19, 20, 21, 22, 23, 24]
@@ -98,6 +96,8 @@ if __name__ == '__main__':
         print('-----------------------------------')
         delay = 60 * delay_to_oclock()  # get delay time until o'clock
 
+        current_time = get_dates()[1]
+
         # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
         if current_day != get_dates()[0]:
             print('Updating dates and cheap_hours ...')
@@ -105,7 +105,7 @@ if __name__ == '__main__':
             current_week_day = get_dates()[2]
             cheap_hours = get_best_hours(7, current_day)
 
-        if cheap_price(cheap_hours):
+        if cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
                 print('Activating....')
                 Scooter_Switch.activate()
@@ -115,11 +115,11 @@ if __name__ == '__main__':
                 do_webhooks_request('boiler_pvpc_down')
             if not Papas_Stove.actual_status:
                 if current_week_day < 5:
-                    if cheap_hours in papas_sleep_hours:
+                    if current_time in papas_sleep_hours:
                         Papas_Stove.activate()
                         do_webhooks_request('papas_stove_pvpc_down')
                 else:
-                    if cheap_hours in papas_sleep_hours_weekend:
+                    if current_time in papas_sleep_hours_weekend:
                         Papas_Stove.activate()
                         do_webhooks_request('papas_stove_pvpc_down')
         else:
