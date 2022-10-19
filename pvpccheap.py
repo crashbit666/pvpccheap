@@ -22,7 +22,6 @@ def get_best_hours(max_items, actual_date):
 
     if response.status_code == 200:
         json_data = json.loads(response.text)
-        print(json_data)
         vals = json_data['indicator']['values']
         prices = [x['value'] for x in vals]
         for price in prices:
@@ -88,7 +87,6 @@ if __name__ == '__main__':
 
     # Infinite loop
     while True:
-        print('-----------------------------------')
         delay = 60 * delay_to_oclock()  # get delay time until o'clock
 
         current_time = get_dates()[1]
@@ -117,7 +115,6 @@ if __name__ == '__main__':
                         do_webhooks_request('papas_stove_pvpc_down')
         else:
             if Scooter_Switch.actual_status:
-                print('Deactivating...')
                 Scooter_Switch.deactivate()
                 do_webhooks_request('scooter_pvpc_high')
             if Boiler_Switch.actual_status:
