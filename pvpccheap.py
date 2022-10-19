@@ -46,17 +46,13 @@ def cheap_price(in_cheap_hours, in_current_time):
     # will be False
 
     if in_current_time in in_cheap_hours:
-        print('cheap_price = True')
         return True
     else:
-        print('cheap_price = False')
         return False
 
 
 def delay_to_oclock():
     minutes = int(datetime.datetime.now().strftime("%M"))
-    print('minutes = '+str(minutes))
-    print('delay_to_oclock = ' + str(int(60 - minutes)))
     return 60 - minutes
 
 
@@ -66,11 +62,9 @@ class ISwitch:
         self.actual_status = actual_status
 
     def activate(self):
-        print('Activating ISwitch...')
         self.actual_status = True
 
     def deactivate(self):
-        print('Deactivating ...')
         self.actual_status = False
 
 
@@ -100,14 +94,12 @@ if __name__ == '__main__':
 
         # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
         if current_day != get_dates()[0]:
-            print('Updating dates and cheap_hours ...')
             current_day = get_dates()[0]
             current_week_day = get_dates()[2]
             cheap_hours = get_best_hours(7, current_day)
 
         if cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
-                print('Activating....')
                 Scooter_Switch.activate()
                 do_webhooks_request('scooter_pvpc_down')
             if not Boiler_Switch.actual_status:
