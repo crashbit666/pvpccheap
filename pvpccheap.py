@@ -76,10 +76,14 @@ if __name__ == '__main__':
     Papas_Stove = ISwitch(False)
     Enzo_Stove = ISwitch(False)
 
-    do_webhooks_request('scooter_pvpc_high')
-    do_webhooks_request('boiler_pvpc_high')
-    do_webhooks_request('papas_stove_pvpc_high')
-    do_webhooks_request('enzo_stove_pvpc_high')
+    while not do_webhooks_request('scooter_pvpc_high'):
+        time.sleep(1)
+    while not do_webhooks_request('boiler_pvpc_high'):
+        time.sleep(1)
+    while not do_webhooks_request('papas_stove_pvpc_high'):
+        time.sleep(1)
+    while not do_webhooks_request('enzo_stove_pvpc_high'):
+        time.sleep(1)
 
     # Initialize current_day, current_time and cheap_hours
     max_hours = 6
@@ -105,42 +109,52 @@ if __name__ == '__main__':
         if cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
                 Scooter_Switch.activate()
-                do_webhooks_request('scooter_pvpc_down')
+                while not do_webhooks_request('scooter_pvpc_down'):
+                    time.sleep(1)
             if not Boiler_Switch.actual_status:
                 Boiler_Switch.activate()
-                do_webhooks_request('boiler_pvpc_down')
+                while not do_webhooks_request('boiler_pvpc_down'):
+                    time.sleep(1)
             if not Papas_Stove.actual_status:
                 if current_week_day < 5:
                     if current_time in papas_sleep_hours:
                         Papas_Stove.activate()
-                        do_webhooks_request('papas_stove_pvpc_down')
+                        while not do_webhooks_request('papas_stove_pvpc_down'):
+                            time.sleep(1)
                 else:
                     if current_time in papas_sleep_hours_weekend:
                         Papas_Stove.activate()
-                        do_webhooks_request('papas_stove_pvpc_down')
+                        while not do_webhooks_request('papas_stove_pvpc_down'):
+                            time.sleep(1)
             if not Enzo_Stove.actual_status:
                 if current_week_day < 5:
                     if current_time in enzo_sleep_hours:
                         Enzo_Stove.activate()
-                        do_webhooks_request('enzo_stove_pvpc_down')
+                        while not do_webhooks_request('enzo_stove_pvpc_down'):
+                            time.sleep(1)
                 else:
                     if current_time in enzo_sleep_hours_weekend:
                         Enzo_Stove.activate()
-                        do_webhooks_request('enzo_stove_pvpc_down')
+                        while not do_webhooks_request('enzo_stove_pvpc_down'):
+                            time.sleep(1)
 
         else:
             if Scooter_Switch.actual_status:
                 Scooter_Switch.deactivate()
-                do_webhooks_request('scooter_pvpc_high')
+                while not do_webhooks_request('scooter_pvpc_high'):
+                    time.sleep(1)
             if Boiler_Switch.actual_status:
                 Boiler_Switch.deactivate()
-                do_webhooks_request('boiler_pvpc_high')
+                while not do_webhooks_request('boiler_pvpc_high'):
+                    time.sleep(1)
             if Papas_Stove.actual_status:
                 Papas_Stove.deactivate()
-                do_webhooks_request('papas_stove_pvpc_high')
+                while not do_webhooks_request('papas_stove_pvpc_high'):
+                    time.sleep(1)
             if Enzo_Stove.actual_status:
                 Enzo_Stove.deactivate()
-                do_webhooks_request('enzo_stove_pvpc_high')
+                while not do_webhooks_request('enzo_stove_pvpc_high'):
+                    time.sleep(1)
 
         time.sleep(delay)
 # Final line
