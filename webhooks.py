@@ -1,7 +1,5 @@
 import time
-
 import requests
-
 from secrets import secrets
 
 

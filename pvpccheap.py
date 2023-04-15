@@ -1,24 +1,67 @@
 # This is a program that search the best hours to charge electric devices.
-# Version: Beta 2
+# Version: Beta 5
 import datetime
 import json
 import time
+import pytz
+import logging
+import logging.handlers
+import firebase_admin
+from firebase_admin import credentials, db
 from webhooks import do_webhooks_request
 import requests as requests
 from secrets import secrets
 
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Set to logging.INFO to reduce verbosity
+handler = logging.handlers.SysLogHandler(address='/dev/log')
+formatter = logging.Formatter('%(module)s.%(funcName)s: %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# Configure firebase credentials
+cred = credentials.Certificate('/home/crashbit/pvpccheap/pvpccheap-firebase-adminsdk-yel11-65a454a38e.json')
+firebase_admin.initialize_app(cred,
+                              {'databaseURL': 'https://pvpccheap-default-rtdb.europe-west1.firebasedatabase.app/'})
+logger.info("Firebase initialized")
+
+
+def get_max_hours_from_firebase():
+    ref = db.reference('max_hours')
+    logger.info("Number of best hours: %s", ref.get())
+    return ref.get()
+
+
+def get_sleep_hours_from_firebase(device_name):
+    ref = db.reference(f'devices/{device_name}/sleep_hours')
+    logger.info("sleep hours: %s", ref.get())
+    return ref.get()
+
+
+def get_sleep_hours_weekend_from_firebase(device_name):
+    ref = db.reference(f'devices/{device_name}/sleep_hours_weekend')
+    logger.info("sleep hours weekend: %s", ref.get())
+    return ref.get()
+
 
 def get_best_hours(max_items, actual_date):
+    local_timezone = pytz.timezone('Europe/Madrid')
+    start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
+                                         is_dst=None).isoformat()
+    end_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(23, 0, 0)),
+                                       is_dst=None).isoformat()
+
     token = secrets.get('TOKEN')
     url = secrets.get('URL')
     headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
-               'Host': 'api.esios.ree.es', 'Authorization': 'Token token=' + token}
+               'Host': 'api.esios.ree.es', 'x-api-key': token}
 
     pkw = []
     hours = []
 
-    response = requests.get(url + '?start_date=' + str(actual_date) + 'T00:00:00.000+02:00' + '&end_date='
-                            + str(actual_date) + 'T23:00:00.000+02:00' + '&geo_ids[]=8741', headers=headers)
+    response = requests.get(url + '?start_date=' + start_date + '&end_date='
+                            + end_date + '&geo_ids[]=8741', headers=headers)
 
     if response.status_code == 200:
         json_data = json.loads(response.text)
@@ -33,11 +76,17 @@ def get_best_hours(max_items, actual_date):
     pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])[0:max_items]
     for i in pkw:
         hours.append(i[0])
+
+    # log best hours
+    logger.info("Best hours: %s", hours)
     return hours
 
 
 def get_dates():
-    return datetime.date.today(), int(datetime.datetime.now().strftime("%H")), datetime.date.today().weekday()
+    local_timezone = pytz.timezone('Europe/Madrid')
+    local_dt = datetime.datetime.now(local_timezone)
+    logger.info("Hour: %s", local_dt.hour)
+    return local_dt.date(), local_dt.hour, local_dt.weekday()
 
 
 def cheap_price(in_cheap_hours, in_current_time):
@@ -86,13 +135,21 @@ if __name__ == '__main__':
         time.sleep(1)
 
     # Initialize current_day, current_time and cheap_hours
-    max_hours = 6
+    # max_hours = 6 default value
+    max_hours = get_max_hours_from_firebase()
+
     current_day, current_time, current_week_day = get_dates()
     cheap_hours = get_best_hours(max_hours, current_day)
+    """ 
     papas_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
     papas_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 19, 20, 21, 22, 23, 24]
     enzo_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
-    enzo_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 14, 15, 16, 19, 20, 21, 22, 23, 24]
+    enzo_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
+    """
+    papas_sleep_hours = get_sleep_hours_from_firebase('papas_stove')
+    papas_sleep_hours_weekend = get_sleep_hours_weekend_from_firebase('papas_stove')
+    enzo_sleep_hours = get_sleep_hours_from_firebase('enzo_stove')
+    enzo_sleep_hours_weekend = get_sleep_hours_weekend_from_firebase('enzo_stove')
 
     # Infinite loop
     while True:
