@@ -19,6 +19,15 @@ class ElectricPriceChecker:
         self.url = secrets.get('URL')
         self.timezone = timezone
 
+    def cheap_price(self, in_cheap_hours, in_current_time):
+        # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
+        # will be False
+
+        if in_current_time in in_cheap_hours:
+            return True
+        else:
+            return False
+
     def get_best_hours(self, max_items, actual_date):
         local_timezone = pytz.timezone(self.timezone)
         start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
@@ -51,16 +60,6 @@ class ElectricPriceChecker:
 
         logger.info("Best hours: %s", hours)
         return hours
-
-
-def cheap_price(in_cheap_hours, in_current_time):
-    # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
-    # will be False
-
-    if in_current_time in in_cheap_hours:
-        return True
-    else:
-        return False
 
 
 class Logger:
@@ -180,7 +179,7 @@ if __name__ == '__main__':
             current_week_day = datetime_helper.get_dates()[2]
             cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
 
-        if cheap_price(cheap_hours, current_time):
+        if electric_price_checker.cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
                 Scooter_Switch.activate()
                 while not do_webhooks_request('scooter_pvpc_down'):
