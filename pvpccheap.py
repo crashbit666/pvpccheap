@@ -83,6 +83,25 @@ def delay_to_oclock():
     return 60 - minutes
 
 
+class Logger:
+    def __init__(self):
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.DEBUG)  # Set to logging.INFO to reduce verbosity
+        handler = logging.handlers.SysLogHandler(address='/dev/log')
+        formatter = logging.Formatter('%(module)s.%(funcName)s: %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
+    def info(self, message):
+        self.logger.info(message)
+
+    def debug(self, message):
+        self.logger.debug(message)
+
+    def error(self, message):
+        self.logger.error(message)
+
+
 class FirebaseHandler:
     def __init__(self, credential_path, database_url):
         cred = credentials.Certificate(credential_path)
@@ -121,6 +140,9 @@ if __name__ == '__main__':
     firebase_handler = FirebaseHandler(
         secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL')
     )
+
+    # Initialize logger
+    logger = Logger()
 
     # Instance class
     Scooter_Switch = ISwitch(False)
