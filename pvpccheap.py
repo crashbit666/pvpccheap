@@ -20,29 +20,8 @@ formatter = logging.Formatter('%(module)s.%(funcName)s: %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-# Configure firebase credentials
-cred = credentials.Certificate('/home/crashbit/pvpccheap/pvpccheap-firebase-adminsdk-yel11-65a454a38e.json')
-firebase_admin.initialize_app(cred,
-                              {'databaseURL': 'https://pvpccheap-default-rtdb.europe-west1.firebasedatabase.app/'})
+# Configure logging system
 logger.info("Firebase initialized")
-
-
-def get_max_hours_from_firebase():
-    ref = db.reference('max_hours')
-    logger.info("Number of best hours: %s", ref.get())
-    return ref.get()
-
-
-def get_sleep_hours_from_firebase(device_name):
-    ref = db.reference(f'devices/{device_name}/sleep_hours')
-    logger.info("sleep hours: %s", ref.get())
-    return ref.get()
-
-
-def get_sleep_hours_weekend_from_firebase(device_name):
-    ref = db.reference(f'devices/{device_name}/sleep_hours_weekend')
-    logger.info("sleep hours weekend: %s", ref.get())
-    return ref.get()
 
 
 def get_best_hours(max_items, actual_date):
@@ -104,6 +83,25 @@ def delay_to_oclock():
     return 60 - minutes
 
 
+class FirebaseHandler:
+    def __init__(self, credential_path, database_url):
+        cred = credentials.Certificate(credential_path)
+        firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+        self.db = db.reference()
+
+    def get_max_hours(self):
+        ref = self.db.child('max_hours')
+        return ref.get()
+
+    def get_sleep_hours(self, device_name):
+        ref = self.db.child(f'devices/{device_name}/sleep_hours')
+        return ref.get()
+
+    def get_sleep_hours_weekend(self, device_name):
+        ref = self.db.child(f'devices/{device_name}/sleep_hours_weekend')
+        return ref.get()
+
+
 class ISwitch:
 
     def __init__(self, actual_status):
@@ -118,6 +116,11 @@ class ISwitch:
 
 # Start point
 if __name__ == '__main__':
+
+    # Initialize Firebase
+    firebase_handler = FirebaseHandler(
+        secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL')
+    )
 
     # Instance class
     Scooter_Switch = ISwitch(False)
@@ -135,21 +138,15 @@ if __name__ == '__main__':
         time.sleep(1)
 
     # Initialize current_day, current_time and cheap_hours
-    # max_hours = 6 default value
-    max_hours = get_max_hours_from_firebase()
+    max_hours = firebase_handler.get_max_hours()
 
     current_day, current_time, current_week_day = get_dates()
     cheap_hours = get_best_hours(max_hours, current_day)
-    """ 
-    papas_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
-    papas_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 15, 19, 20, 21, 22, 23, 24]
-    enzo_sleep_hours = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
-    enzo_sleep_hours_weekend = [0, 1, 2, 3, 4, 5, 6, 7, 19, 20, 21, 22, 23, 24]
-    """
-    papas_sleep_hours = get_sleep_hours_from_firebase('papas_stove')
-    papas_sleep_hours_weekend = get_sleep_hours_weekend_from_firebase('papas_stove')
-    enzo_sleep_hours = get_sleep_hours_from_firebase('enzo_stove')
-    enzo_sleep_hours_weekend = get_sleep_hours_weekend_from_firebase('enzo_stove')
+
+    papas_sleep_hours = firebase_handler.get_sleep_hours('papas_stove')
+    papas_sleep_hours_weekend = firebase_handler.get_sleep_hours_weekend('papas_stove')
+    enzo_sleep_hours = firebase_handler.get_sleep_hours('enzo_stove')
+    enzo_sleep_hours_weekend = firebase_handler.get_sleep_hours_weekend('enzo_stove')
 
     # Infinite loop
     while True:
