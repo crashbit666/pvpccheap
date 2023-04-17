@@ -20,13 +20,7 @@ class ElectricPriceChecker:
         self.timezone = timezone
 
     def cheap_price(self, in_cheap_hours, in_current_time):
-        # Here we need to check if past hour is expensive or cheap hour. If the hour is not cheap, the last status
-        # will be False
-
-        if in_current_time in in_cheap_hours:
-            return True
-        else:
-            return False
+        return in_current_time in in_cheap_hours
 
     def get_best_hours(self, max_items, actual_date):
         local_timezone = pytz.timezone(self.timezone)
@@ -129,16 +123,16 @@ class Device:
     def deactivate(self):
         self.actual_status = False
 
-    def process_device(device, device_status, webhook_key):
+    def process_device(self, device_status):
         if device_status:
-            if not device.actual_status:
-                device.activate()
-                while not do_webhooks_request(webhook_key + '_pvpc_down'):
+            if not self.actual_status:
+                self.activate()
+                while not do_webhooks_request(self.webhook_key + '_pvpc_down'):
                     time.sleep(1)
         else:
-            if device.actual_status:
-                device.deactivate()
-                while not do_webhooks_request(webhook_key + '_pvpc_high'):
+            if self.actual_status:
+                self.deactivate()
+                while not do_webhooks_request(self.webhook_key + '_pvpc_high'):
                     time.sleep(1)
 
 
@@ -176,12 +170,13 @@ if __name__ == '__main__':
     while True:
         delay = 60 * datetime_helper.delay_to_oclock()  # get delay time until o'clock
 
-        current_time = datetime_helper.get_dates()[1]  # get current hour
+        # get current date, hour, and weekday
+        current_date, current_time, current_week_day = datetime_helper.get_dates()
 
         # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
-        if current_day != datetime_helper.get_dates()[0]:
-            current_day = datetime_helper.get_dates()[0]
-            current_week_day = datetime_helper.get_dates()[2]
+        if current_day != current_date:
+            current_day = current_date
+            current_week_day = current_week_day
             cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
 
         is_cheap = electric_price_checker.cheap_price(cheap_hours, current_time)
@@ -189,11 +184,11 @@ if __name__ == '__main__':
 
         for device in devices:
             if device.sleep_hours is None:  # Devices without sleep hours, such as Scooter and Boiler
-                device.process_device(device, is_cheap, device.webhook_key)
+                device.process_device(is_cheap)
             else:  # Devices with sleep hours, such as Papas Stove and Enzo Stove
                 device_status = is_cheap and (
                         current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
-                device.process_device(device, device_status, device.webhook_key)
+                device.process_device(device_status)
 
         time.sleep(delay)
 # Final line
