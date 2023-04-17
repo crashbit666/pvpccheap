@@ -12,60 +12,45 @@ from webhooks import do_webhooks_request
 import requests as requests
 from secrets import secrets
 
-# Configure logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)  # Set to logging.INFO to reduce verbosity
-handler = logging.handlers.SysLogHandler(address='/dev/log')
-formatter = logging.Formatter('%(module)s.%(funcName)s: %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
-# Configure logging system
-logger.info("Firebase initialized")
+class ElectricPriceChecker:
+    def __init__(self, secrets, timezone):
+        self.token = secrets.get('TOKEN')
+        self.url = secrets.get('URL')
+        self.timezone = timezone
 
+    def get_best_hours(self, max_items, actual_date):
+        local_timezone = pytz.timezone(self.timezone)
+        start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
+                                             is_dst=None).isoformat()
+        end_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(23, 0, 0)),
+                                           is_dst=None).isoformat()
 
-def get_best_hours(max_items, actual_date):
-    local_timezone = pytz.timezone('Europe/Madrid')
-    start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
-                                         is_dst=None).isoformat()
-    end_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(23, 0, 0)),
-                                       is_dst=None).isoformat()
+        headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
+                   'Host': 'api.esios.ree.es', 'x-api-key': self.token}
 
-    token = secrets.get('TOKEN')
-    url = secrets.get('URL')
-    headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
-               'Host': 'api.esios.ree.es', 'x-api-key': token}
+        pkw = []
+        hours = []
 
-    pkw = []
-    hours = []
+        response = requests.get(self.url + '?start_date=' + start_date + '&end_date='
+                                + end_date + '&geo_ids[]=8741', headers=headers)
 
-    response = requests.get(url + '?start_date=' + start_date + '&end_date='
-                            + end_date + '&geo_ids[]=8741', headers=headers)
+        if response.status_code == 200:
+            json_data = json.loads(response.text)
+            vals = json_data['indicator']['values']
+            prices = [x['value'] for x in vals]
+            for price in prices:
+                pkw.append(round(price / 1000, 4))
+        else:
+            pkw = "Error connecting to database"
 
-    if response.status_code == 200:
-        json_data = json.loads(response.text)
-        vals = json_data['indicator']['values']
-        prices = [x['value'] for x in vals]
-        for price in prices:
-            pkw.append(round(price / 1000, 4))
-    else:
-        pkw = "Error connecting to database"
+        # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
+        pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])[0:max_items]
+        for i in pkw:
+            hours.append(i[0])
 
-    # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
-    pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])[0:max_items]
-    for i in pkw:
-        hours.append(i[0])
-
-    # log best hours
-    logger.info("Best hours: %s", hours)
-    return hours
-
-
-def get_dates():
-    local_timezone = pytz.timezone('Europe/Madrid')
-    local_dt = datetime.datetime.now(local_timezone)
-    logger.info("Hour: %s", local_dt.hour)
-    return local_dt.date(), local_dt.hour, local_dt.weekday()
+        logger.info("Best hours: %s", hours)
+        return hours
 
 
 def cheap_price(in_cheap_hours, in_current_time):
@@ -76,11 +61,6 @@ def cheap_price(in_cheap_hours, in_current_time):
         return True
     else:
         return False
-
-
-def delay_to_oclock():
-    minutes = int(datetime.datetime.now().strftime("%M"))
-    return 60 - minutes
 
 
 class Logger:
@@ -121,6 +101,21 @@ class FirebaseHandler:
         return ref.get()
 
 
+class DateTimeHelper:
+    def __init__(self, timezone):
+        self.timezone = timezone
+
+    def get_dates(self):
+        local_timezone = pytz.timezone(self.timezone)
+        local_dt = datetime.datetime.now(local_timezone)
+        logger.info("Hour: %s", local_dt.hour)
+        return local_dt.date(), local_dt.hour, local_dt.weekday()
+
+    def delay_to_oclock(self):
+        minutes = int(datetime.datetime.now().strftime("%M"))
+        return 60 - minutes
+
+
 class ISwitch:
 
     def __init__(self, actual_status):
@@ -144,6 +139,10 @@ if __name__ == '__main__':
     # Initialize logger
     logger = Logger()
 
+    # Initialize DateTimeHelper and ElectricPriceChecker
+    electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid')
+    datetime_helper = DateTimeHelper('Europe/Madrid')
+
     # Instance class
     Scooter_Switch = ISwitch(False)
     Boiler_Switch = ISwitch(False)
@@ -161,9 +160,8 @@ if __name__ == '__main__':
 
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
-
-    current_day, current_time, current_week_day = get_dates()
-    cheap_hours = get_best_hours(max_hours, current_day)
+    current_day, current_time, current_week_day = datetime_helper.get_dates()
+    cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
 
     papas_sleep_hours = firebase_handler.get_sleep_hours('papas_stove')
     papas_sleep_hours_weekend = firebase_handler.get_sleep_hours_weekend('papas_stove')
@@ -172,15 +170,15 @@ if __name__ == '__main__':
 
     # Infinite loop
     while True:
-        delay = 60 * delay_to_oclock()  # get delay time until o'clock
+        delay = 60 * datetime_helper.delay_to_oclock()  # get delay time until o'clock
 
-        current_time = get_dates()[1]
+        current_time = datetime_helper.get_dates()[1]  # get current hour
 
         # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
-        if current_day != get_dates()[0]:
-            current_day = get_dates()[0]
-            current_week_day = get_dates()[2]
-            cheap_hours = get_best_hours(max_hours, current_day)
+        if current_day != datetime_helper.get_dates()[0]:
+            current_day = datetime_helper.get_dates()[0]
+            current_week_day = datetime_helper.get_dates()[2]
+            cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
 
         if cheap_price(cheap_hours, current_time):
             if not Scooter_Switch.actual_status:
