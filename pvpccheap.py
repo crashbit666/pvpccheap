@@ -115,10 +115,13 @@ class DateTimeHelper:
         return 60 - minutes
 
 
-class ISwitch:
-
-    def __init__(self, actual_status):
-        self.actual_status = actual_status
+class Device:
+    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend):
+        self.name = name
+        self.webhook_key = webhook_key
+        self.sleep_hours = sleep_hours
+        self.sleep_hours_weekend = sleep_hours_weekend
+        self.actual_status = False
 
     def activate(self):
         self.actual_status = True
@@ -126,27 +129,17 @@ class ISwitch:
     def deactivate(self):
         self.actual_status = False
 
-
-class Device:
-    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend):
-        self.name = name
-        self.webhook_key = webhook_key
-        self.sleep_hours = sleep_hours
-        self.sleep_hours_weekend = sleep_hours_weekend
-        self.switch = ISwitch(False)
-
-
-def process_device(device_switch, device_status, webhook_key):
-    if device_status:
-        if not device_switch.actual_status:
-            device_switch.activate()
-            while not do_webhooks_request(webhook_key + '_pvpc_down'):
-                time.sleep(1)
-    else:
-        if device_switch.actual_status:
-            device_switch.deactivate()
-            while not do_webhooks_request(webhook_key + '_pvpc_high'):
-                time.sleep(1)
+    def process_device(device, device_status, webhook_key):
+        if device_status:
+            if not device.actual_status:
+                device.activate()
+                while not do_webhooks_request(webhook_key + '_pvpc_down'):
+                    time.sleep(1)
+        else:
+            if device.actual_status:
+                device.deactivate()
+                while not do_webhooks_request(webhook_key + '_pvpc_high'):
+                    time.sleep(1)
 
 
 # Start point
@@ -196,11 +189,11 @@ if __name__ == '__main__':
 
         for device in devices:
             if device.sleep_hours is None:  # Devices without sleep hours, such as Scooter and Boiler
-                process_device(device.switch, is_cheap, device.webhook_key)
+                device.process_device(device, is_cheap, device.webhook_key)
             else:  # Devices with sleep hours, such as Papas Stove and Enzo Stove
                 device_status = is_cheap and (
-                            current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
-                process_device(device.switch, device_status, device.webhook_key)
+                        current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
+                device.process_device(device, device_status, device.webhook_key)
 
         time.sleep(delay)
 # Final line
