@@ -127,45 +127,57 @@ class ISwitch:
         self.actual_status = False
 
 
+class Device:
+    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend):
+        self.name = name
+        self.webhook_key = webhook_key
+        self.sleep_hours = sleep_hours
+        self.sleep_hours_weekend = sleep_hours_weekend
+        self.switch = ISwitch(False)
+
+
+def process_device(device_switch, device_status, webhook_key):
+    if device_status:
+        if not device_switch.actual_status:
+            device_switch.activate()
+            while not do_webhooks_request(webhook_key + '_pvpc_down'):
+                time.sleep(1)
+    else:
+        if device_switch.actual_status:
+            device_switch.deactivate()
+            while not do_webhooks_request(webhook_key + '_pvpc_high'):
+                time.sleep(1)
+
+
 # Start point
 if __name__ == '__main__':
+
+    # Initialize logger
+    logger = Logger()
 
     # Initialize Firebase
     firebase_handler = FirebaseHandler(
         secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL')
     )
 
-    # Initialize logger
-    logger = Logger()
-
     # Initialize DateTimeHelper and ElectricPriceChecker
     electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid')
     datetime_helper = DateTimeHelper('Europe/Madrid')
 
-    # Instance class
-    Scooter_Switch = ISwitch(False)
-    Boiler_Switch = ISwitch(False)
-    Papas_Stove = ISwitch(False)
-    Enzo_Stove = ISwitch(False)
-
-    while not do_webhooks_request('scooter_pvpc_high'):
-        time.sleep(1)
-    while not do_webhooks_request('boiler_pvpc_high'):
-        time.sleep(1)
-    while not do_webhooks_request('papas_stove_pvpc_high'):
-        time.sleep(1)
-    while not do_webhooks_request('enzo_stove_pvpc_high'):
-        time.sleep(1)
+    # Initialize devices
+    devices = [
+        Device("Scooter", "scooter", None, None),
+        Device("Boiler", "boiler", None, None),
+        Device("Papas Stove", "papas_stove", firebase_handler.get_sleep_hours('papas_stove'),
+               firebase_handler.get_sleep_hours_weekend('papas_stove')),
+        Device("Enzo Stove", "enzo_stove", firebase_handler.get_sleep_hours('enzo_stove'),
+               firebase_handler.get_sleep_hours_weekend('enzo_stove'))
+    ]
 
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
     current_day, current_time, current_week_day = datetime_helper.get_dates()
     cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
-
-    papas_sleep_hours = firebase_handler.get_sleep_hours('papas_stove')
-    papas_sleep_hours_weekend = firebase_handler.get_sleep_hours_weekend('papas_stove')
-    enzo_sleep_hours = firebase_handler.get_sleep_hours('enzo_stove')
-    enzo_sleep_hours_weekend = firebase_handler.get_sleep_hours_weekend('enzo_stove')
 
     # Infinite loop
     while True:
@@ -179,55 +191,16 @@ if __name__ == '__main__':
             current_week_day = datetime_helper.get_dates()[2]
             cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
 
-        if electric_price_checker.cheap_price(cheap_hours, current_time):
-            if not Scooter_Switch.actual_status:
-                Scooter_Switch.activate()
-                while not do_webhooks_request('scooter_pvpc_down'):
-                    time.sleep(1)
-            if not Boiler_Switch.actual_status:
-                Boiler_Switch.activate()
-                while not do_webhooks_request('boiler_pvpc_down'):
-                    time.sleep(1)
-            if not Papas_Stove.actual_status:
-                if current_week_day < 5:
-                    if current_time in papas_sleep_hours:
-                        Papas_Stove.activate()
-                        while not do_webhooks_request('papas_stove_pvpc_down'):
-                            time.sleep(1)
-                else:
-                    if current_time in papas_sleep_hours_weekend:
-                        Papas_Stove.activate()
-                        while not do_webhooks_request('papas_stove_pvpc_down'):
-                            time.sleep(1)
-            if not Enzo_Stove.actual_status:
-                if current_week_day < 5:
-                    if current_time in enzo_sleep_hours:
-                        Enzo_Stove.activate()
-                        while not do_webhooks_request('enzo_stove_pvpc_down'):
-                            time.sleep(1)
-                else:
-                    if current_time in enzo_sleep_hours_weekend:
-                        Enzo_Stove.activate()
-                        while not do_webhooks_request('enzo_stove_pvpc_down'):
-                            time.sleep(1)
+        is_cheap = electric_price_checker.cheap_price(cheap_hours, current_time)
+        is_weekend = current_week_day >= 5
 
-        else:
-            if Scooter_Switch.actual_status:
-                Scooter_Switch.deactivate()
-                while not do_webhooks_request('scooter_pvpc_high'):
-                    time.sleep(1)
-            if Boiler_Switch.actual_status:
-                Boiler_Switch.deactivate()
-                while not do_webhooks_request('boiler_pvpc_high'):
-                    time.sleep(1)
-            if Papas_Stove.actual_status:
-                Papas_Stove.deactivate()
-                while not do_webhooks_request('papas_stove_pvpc_high'):
-                    time.sleep(1)
-            if Enzo_Stove.actual_status:
-                Enzo_Stove.deactivate()
-                while not do_webhooks_request('enzo_stove_pvpc_high'):
-                    time.sleep(1)
+        for device in devices:
+            if device.sleep_hours is None:  # Devices without sleep hours, such as Scooter and Boiler
+                process_device(device.switch, is_cheap, device.webhook_key)
+            else:  # Devices with sleep hours, such as Papas Stove and Enzo Stove
+                device_status = is_cheap and (
+                            current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
+                process_device(device.switch, device_status, device.webhook_key)
 
         time.sleep(delay)
 # Final line
