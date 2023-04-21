@@ -18,9 +18,7 @@ class ElectricPriceChecker:
         self.token = secrets.get('TOKEN')
         self.url = secrets.get('URL')
         self.timezone = timezone
-
-    def cheap_price(self, in_cheap_hours, in_current_time):
-        return in_current_time in in_cheap_hours
+        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'gest_best_hours'})
 
     def get_best_hours(self, max_items, actual_date):
         local_timezone = pytz.timezone(self.timezone)
@@ -35,8 +33,8 @@ class ElectricPriceChecker:
         pkw = []
         hours = []
 
-        response = requests.get(self.url + '?start_date=' + start_date + '&end_date='
-                                + end_date + '&geo_ids[]=8741', headers=headers)
+        response = requests.get(f"{self.url}?start_date={start_date}&end_date={end_date}&geo_ids[]=8741",
+                                headers=headers)
 
         if response.status_code == 200:
             json_data = json.loads(response.text)
@@ -45,15 +43,20 @@ class ElectricPriceChecker:
             for price in prices:
                 pkw.append(round(price / 1000, 4))
         else:
-            pkw = "Error connecting to database"
+            self.logger.debug("Error connecting to ESIOS API. Status code: %s", response.status_code)
+            raise ElectricPriceCheckerException("Error connecting to ESIOS API.")
 
         # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
         pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])[0:max_items]
         for i in pkw:
             hours.append(i[0])
 
-        logger.info("Best hours: %s", hours)
+        self.logger.debug("Best hours: %s", hours)
         return hours
+
+
+class ElectricPriceCheckerException(Exception):
+    pass
 
 
 class Logger:
@@ -97,16 +100,13 @@ class FirebaseHandler:
 class DateTimeHelper:
     def __init__(self, timezone):
         self.timezone = timezone
+        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'DateTimeHelper'})
 
     def get_dates(self):
         local_timezone = pytz.timezone(self.timezone)
         local_dt = datetime.datetime.now(local_timezone)
-        logger.info("Hour: %s", local_dt.hour)
+        self.logger.info("Hour: %s", local_dt.hour)
         return local_dt.date(), local_dt.hour, local_dt.weekday()
-
-    def delay_to_oclock(self):
-        minutes = int(datetime.datetime.now().strftime("%M"))
-        return 60 - minutes
 
 
 class Device:
@@ -116,6 +116,7 @@ class Device:
         self.sleep_hours = sleep_hours
         self.sleep_hours_weekend = sleep_hours_weekend
         self.actual_status = False
+        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'Device'})
 
     def activate(self):
         self.actual_status = True
@@ -134,6 +135,21 @@ class Device:
                 self.deactivate()
                 while not do_webhooks_request(self.webhook_key + '_pvpc_high'):
                     time.sleep(1)
+
+        self.logger.debug("Device status for %s: %s", self.name, "ON" if device_status else "OFF")
+        self.logger.debug("Current status for %s: %s", self.name, "ON" if self.actual_status else "OFF")
+
+
+def update_cheap_hours(electric_price_checker, max_hours, current_day):
+    try:
+        return electric_price_checker.get_best_hours(max_hours, current_day)
+    except ElectricPriceCheckerException as e:
+        logger.error("Error getting cheap hours: %s", str(e))
+        return []
+
+
+def is_in_cheap_hours(self, in_cheap_hours, in_current_time):
+    return in_current_time in in_cheap_hours
 
 
 # Start point
@@ -164,11 +180,12 @@ if __name__ == '__main__':
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
     current_day, current_time, current_week_day = datetime_helper.get_dates()
-    cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
+    cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day)
 
     # Infinite loop
     while True:
-        delay = 60 * datetime_helper.delay_to_oclock()  # get delay time until o'clock
+        # get delay time until o'clock
+        delay = (60 - datetime.datetime.now().minute) * 60
 
         # get current date, hour, and weekday
         current_date, current_time, current_week_day = datetime_helper.get_dates()
@@ -177,9 +194,13 @@ if __name__ == '__main__':
         if current_day != current_date:
             current_day = current_date
             current_week_day = current_week_day
-            cheap_hours = electric_price_checker.get_best_hours(max_hours, current_day)
+            try:
+                cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day)
+            except ElectricPriceCheckerException as e:
+                logger.error("Error getting cheap hours: %s", str(e))
+                continue
 
-        is_cheap = electric_price_checker.cheap_price(cheap_hours, current_time)
+        is_cheap = is_in_cheap_hours(cheap_hours, current_time)
         is_weekend = current_week_day >= 5
 
         for device in devices:
