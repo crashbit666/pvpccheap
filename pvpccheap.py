@@ -18,7 +18,7 @@ class Webhooks:
 
     def do_webhooks_request(self, pvpc):
         try:
-            requests.post('https://maker.ifttt.com/trigger/'+pvpc+'/with/key/'+self.webhook_apikey)
+            requests.post(f'https://maker.ifttt.com/trigger/{pvpc}/with/key/{self.webhook_apikey}')
             return True
         except requests.ConnectionError:
             return False
@@ -36,7 +36,7 @@ class ElectricPriceChecker:
         self.token = _secrets.get('TOKEN')
         self.url = _secrets.get('URL')
         self.timezone = timezone
-        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'gest_best_hours'})
+        self.logger = logger
 
     def get_best_hours(self, max_items, actual_date):
         local_timezone = pytz.timezone(self.timezone)
@@ -61,7 +61,7 @@ class ElectricPriceChecker:
             for price in prices:
                 pkw.append(round(price / 1000, 4))
         else:
-            self.logger.debug("Error connecting to ESIOS API. Status code: %s", response.status_code)
+            self.logger.debug("Error connecting to ESIOS API. Status code: %s" % response.status_code)
             raise ElectricPriceCheckerException("Error connecting to ESIOS API.")
 
         # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
@@ -69,7 +69,7 @@ class ElectricPriceChecker:
         for i in pkw:
             hours.append(i[0])
 
-        self.logger.debug("Best hours: %s", hours)
+        self.logger.debug("Best hours: %s" % hours)
         return hours
 
 
@@ -101,29 +101,33 @@ class FirebaseHandler:
         cred = credentials.Certificate(credential_path)
         firebase_admin.initialize_app(cred, {'databaseURL': database_url})
         self.db = db.reference()
+        self.logger = logger
 
     def get_max_hours(self):
         ref = self.db.child('max_hours')
+        self.logger.debug("Max hours: %s" % ref.get())
         return ref.get()
 
     def get_sleep_hours(self, device_name):
         ref = self.db.child(f'devices/{device_name}/sleep_hours')
+        self.logger.debug("Sleep hours: %s" % ref.get())
         return ref.get()
 
     def get_sleep_hours_weekend(self, device_name):
         ref = self.db.child(f'devices/{device_name}/sleep_hours_weekend')
+        self.logger.debug("Sleep hours weekend: %s" % ref.get())
         return ref.get()
 
 
 class DateTimeHelper:
     def __init__(self, timezone):
         self.timezone = timezone
-        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'DateTimeHelper'})
+        self.logger = logger
 
     def get_dates(self):
         local_timezone = pytz.timezone(self.timezone)
         local_dt = datetime.datetime.now(local_timezone)
-        self.logger.info("Hour: %s", local_dt.hour)
+        self.logger.info("Hour: %s, Date: %s, Weekday: %s" % (local_dt.hour, local_dt.date(), local_dt.weekday()))
         return local_dt.date(), local_dt.hour, local_dt.weekday()
 
 
@@ -134,7 +138,7 @@ class Device:
         self.sleep_hours = sleep_hours
         self.sleep_hours_weekend = sleep_hours_weekend
         self.actual_status = False
-        self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'Device'})
+        self.logger = logger
 
     def activate(self):
         self.actual_status = True
@@ -154,15 +158,15 @@ class Device:
                 while not webhooks.do_webhooks_request('_pvpc_high'):
                     time.sleep(1)
 
-        self.logger.debug("Device status for %s: %s", self.name, "ON" if _device_status else "OFF")
-        self.logger.debug("Current status for %s: %s", self.name, "ON" if self.actual_status else "OFF")
+        self.logger.debug("Device status for %s: %s" % (self.name, "ON" if _device_status else "OFF"))
+        self.logger.debug("Current status for %s: %s" % (self.name, "ON" if self.actual_status else "OFF"))
 
 
 def update_cheap_hours(_electric_price_checker, _max_hours, _current_day):
     try:
         return _electric_price_checker.get_best_hours(_max_hours, _current_day)
     except ElectricPriceCheckerException as e:
-        logger.error("Error getting cheap hours: %s", str(e))
+        logger.error("Error getting cheap hours: %s" % str(e))
         return []
 
 
@@ -196,7 +200,7 @@ if __name__ == '__main__':
     ]
 
     # Initialize webhooks
-    webhooks = Webhooks(secrets.get('WEBHOOKS_URL'))
+    webhooks = Webhooks(secrets.get('WEBHOOKS_KEY'))
 
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
@@ -218,7 +222,7 @@ if __name__ == '__main__':
             try:
                 cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day)
             except ElectricPriceCheckerException as e:
-                logger.error("Error getting cheap hours: %s", str(e))
+                logger.error("Error getting cheap hours: %s" % str(e))
                 continue
 
         is_cheap = is_in_cheap_hours(cheap_hours, current_time)

@@ -1,0 +1,13 @@
+[Unit]
+Description=Script to check PVP price and Activate/Deactivate Switches
+After=multi-user.target
+
+[Service]
+Type=simple
+User=crashbit
+Group=crashbit
+Restart=always
+ExecStart=/home/crashbit/Programació/Projectes/pvpccheap/venv/bin/python /home/crashbit/Programació/Projectes/pvpccheap/pvpccheap.py
+
+[Install]
+WantedBy=multi-user.target
