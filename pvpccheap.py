@@ -14,9 +14,9 @@ from secrets import secrets
 
 
 class ElectricPriceChecker:
-    def __init__(self, secrets, timezone):
-        self.token = secrets.get('TOKEN')
-        self.url = secrets.get('URL')
+    def __init__(self, _secrets, timezone):
+        self.token = _secrets.get('TOKEN')
+        self.url = _secrets.get('URL')
         self.timezone = timezone
         self.logger = logging.LoggerAdapter(logging.getLogger(), {'funcName': 'gest_best_hours'})
 
@@ -124,8 +124,8 @@ class Device:
     def deactivate(self):
         self.actual_status = False
 
-    def process_device(self, device_status):
-        if device_status:
+    def process_device(self, _device_status):
+        if _device_status:
             if not self.actual_status:
                 self.activate()
                 while not do_webhooks_request(self.webhook_key + '_pvpc_down'):
@@ -136,19 +136,19 @@ class Device:
                 while not do_webhooks_request(self.webhook_key + '_pvpc_high'):
                     time.sleep(1)
 
-        self.logger.debug("Device status for %s: %s", self.name, "ON" if device_status else "OFF")
+        self.logger.debug("Device status for %s: %s", self.name, "ON" if _device_status else "OFF")
         self.logger.debug("Current status for %s: %s", self.name, "ON" if self.actual_status else "OFF")
 
 
-def update_cheap_hours(electric_price_checker, max_hours, current_day):
+def update_cheap_hours(_electric_price_checker, _max_hours, _current_day):
     try:
-        return electric_price_checker.get_best_hours(max_hours, current_day)
+        return _electric_price_checker.get_best_hours(_max_hours, _current_day)
     except ElectricPriceCheckerException as e:
         logger.error("Error getting cheap hours: %s", str(e))
         return []
 
 
-def is_in_cheap_hours(self, in_cheap_hours, in_current_time):
+def is_in_cheap_hours(in_cheap_hours, in_current_time):
     return in_current_time in in_cheap_hours
 
 
