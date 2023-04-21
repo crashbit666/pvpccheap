@@ -1,5 +1,5 @@
 # This is a program that search the best hours to charge electric devices.
-# Version: Beta 5
+# Version: Beta 6
 import datetime
 import json
 import time
@@ -8,9 +8,27 @@ import logging
 import logging.handlers
 import firebase_admin
 from firebase_admin import credentials, db
-from webhooks import do_webhooks_request
 import requests as requests
 from secrets import secrets
+
+
+class Webhooks:
+    def __init__(self, webhook_apikey):
+        self.webhook_apikey = webhook_apikey
+
+    def do_webhooks_request(self, pvpc):
+        try:
+            requests.post('https://maker.ifttt.com/trigger/'+pvpc+'/with/key/'+self.webhook_apikey)
+            return True
+        except requests.ConnectionError:
+            return False
+        except requests.HTTPError:
+            return False
+        except requests.TooManyRedirects:
+            return False
+        except requests.Timeout:
+            time.sleep(3)
+            return False
 
 
 class ElectricPriceChecker:
@@ -128,12 +146,12 @@ class Device:
         if _device_status:
             if not self.actual_status:
                 self.activate()
-                while not do_webhooks_request(self.webhook_key + '_pvpc_down'):
+                while not webhooks.do_webhooks_request('_pvpc_down'):
                     time.sleep(1)
         else:
             if self.actual_status:
                 self.deactivate()
-                while not do_webhooks_request(self.webhook_key + '_pvpc_high'):
+                while not webhooks.do_webhooks_request('_pvpc_high'):
                     time.sleep(1)
 
         self.logger.debug("Device status for %s: %s", self.name, "ON" if _device_status else "OFF")
@@ -176,6 +194,9 @@ if __name__ == '__main__':
         Device("Enzo Stove", "enzo_stove", firebase_handler.get_sleep_hours('enzo_stove'),
                firebase_handler.get_sleep_hours_weekend('enzo_stove'))
     ]
+
+    # Initialize webhooks
+    webhooks = Webhooks(secrets.get('WEBHOOKS_URL'))
 
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
