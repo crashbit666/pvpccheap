@@ -32,7 +32,7 @@ class Webhooks:
 
 
 class ElectricPriceChecker:
-    def __init__(self, _secrets, timezone):
+    def __init__(self, _secrets, timezone, logger):
         self.token = _secrets.get('TOKEN')
         self.url = _secrets.get('URL')
         self.timezone = timezone
@@ -97,7 +97,7 @@ class Logger:
 
 
 class FirebaseHandler:
-    def __init__(self, credential_path, database_url):
+    def __init__(self, credential_path, database_url, logger):
         cred = credentials.Certificate(credential_path)
         firebase_admin.initialize_app(cred, {'databaseURL': database_url})
         self.db = db.reference()
@@ -120,7 +120,7 @@ class FirebaseHandler:
 
 
 class DateTimeHelper:
-    def __init__(self, timezone):
+    def __init__(self, timezone, logger):
         self.timezone = timezone
         self.logger = logger
 
@@ -132,13 +132,14 @@ class DateTimeHelper:
 
 
 class Device:
-    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend):
+    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend, logger, webhooks):
         self.name = name
         self.webhook_key = webhook_key
         self.sleep_hours = sleep_hours
         self.sleep_hours_weekend = sleep_hours_weekend
         self.actual_status = False
         self.logger = logger
+        self.webhooks = webhooks
 
     def activate(self):
         self.actual_status = True
@@ -150,19 +151,19 @@ class Device:
         if _device_status:
             if not self.actual_status:
                 self.activate()
-                while not webhooks.do_webhooks_request('_pvpc_down'):
+                while not self.webhooks.do_webhooks_request('_pvpc_down'):
                     time.sleep(1)
         else:
             if self.actual_status:
                 self.deactivate()
-                while not webhooks.do_webhooks_request('_pvpc_high'):
+                while not self.webhooks.do_webhooks_request('_pvpc_high'):
                     time.sleep(1)
 
         self.logger.debug("Device status for %s: %s" % (self.name, "ON" if _device_status else "OFF"))
         self.logger.debug("Current status for %s: %s" % (self.name, "ON" if self.actual_status else "OFF"))
 
 
-def update_cheap_hours(_electric_price_checker, _max_hours, _current_day):
+def update_cheap_hours(_electric_price_checker, _max_hours, _current_day, logger):
     try:
         return _electric_price_checker.get_best_hours(_max_hours, _current_day)
     except ElectricPriceCheckerException as ex:
@@ -174,38 +175,36 @@ def is_in_cheap_hours(in_cheap_hours, in_current_time):
     return in_current_time in in_cheap_hours
 
 
-# Start point
-if __name__ == '__main__':
-
+def main():
     # Initialize logger
     logger = Logger()
 
     # Initialize Firebase
     firebase_handler = FirebaseHandler(
-        secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL')
+        secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL'), logger
     )
 
     # Initialize DateTimeHelper and ElectricPriceChecker
-    electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid')
-    datetime_helper = DateTimeHelper('Europe/Madrid')
-
-    # Initialize devices
-    devices = [
-        Device("Scooter", "scooter", None, None),
-        Device("Boiler", "boiler", None, None),
-        Device("Papas Stove", "papas_stove", firebase_handler.get_sleep_hours('papas_stove'),
-               firebase_handler.get_sleep_hours_weekend('papas_stove')),
-        Device("Enzo Stove", "enzo_stove", firebase_handler.get_sleep_hours('enzo_stove'),
-               firebase_handler.get_sleep_hours_weekend('enzo_stove'))
-    ]
+    electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid', logger)
+    datetime_helper = DateTimeHelper('Europe/Madrid', logger)
 
     # Initialize webhooks
     webhooks = Webhooks(secrets.get('WEBHOOKS_KEY'))
 
+    # Initialize devices
+    devices = [
+        Device("Scooter", "scooter", None, None, logger, webhooks),
+        Device("Boiler", "boiler", None, None, logger, webhooks),
+        Device("Papas Stove", "papas_stove", firebase_handler.get_sleep_hours('papas_stove'),
+               firebase_handler.get_sleep_hours_weekend('papas_stove'), logger, webhooks),
+        Device("Enzo Stove", "enzo_stove", firebase_handler.get_sleep_hours('enzo_stove'),
+               firebase_handler.get_sleep_hours_weekend('enzo_stove'), logger, webhooks)
+    ]
+
     # Initialize current_day, current_time and cheap_hours
     max_hours = firebase_handler.get_max_hours()
     current_day, current_time, current_week_day = datetime_helper.get_dates()
-    cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day)
+    cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day, logger)
 
     # Infinite loop
     while True:
@@ -220,7 +219,7 @@ if __name__ == '__main__':
             current_day = current_date
             current_week_day = current_week_day
             try:
-                cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day)
+                cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day, logger)
             except ElectricPriceCheckerException as e:
                 logger.error("Error getting cheap hours: %s" % str(e))
                 continue
@@ -237,4 +236,9 @@ if __name__ == '__main__':
                 device.process_device(device_status)
 
         time.sleep(delay)
+
+
+# Start point
+if __name__ == '__main__':
+    main()
 # Final line
