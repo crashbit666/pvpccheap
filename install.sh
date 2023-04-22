@@ -13,6 +13,14 @@ then
     exit
 fi
 
+# Create the application directory if it does not exist
+APP_PATH="/opt/pvpccheap"
+if [ ! -d "$APP_PATH" ]; then
+    sudo mkdir -p "$APP_PATH"
+    sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
+    sudo chmod -R 750 "$APP_PATH"
+fi
+
 # Install necessary packages
 pip3 install --user wheel
 
