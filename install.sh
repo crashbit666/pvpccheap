@@ -13,14 +13,6 @@ then
     exit
 fi
 
-# Create the application directory if it does not exist
-APP_PATH="/opt/pvpccheap"
-if [ ! -d "$APP_PATH" ]; then
-    sudo mkdir -p "$APP_PATH"
-    sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
-    sudo chmod -R 750 "$APP_PATH"
-fi
-
 # Install necessary packages
 pip3 install --user wheel
 
@@ -28,6 +20,13 @@ pip3 install --user wheel
 sudo getent group pvpccheap || sudo groupadd -r pvpccheap
 sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -s /sbin/nologin -c "PVPC Cheap user" pvpccheap
 
+# Create the application directory if it does not exist
+APP_PATH="/opt/pvpccheap"
+if [ ! -d "$APP_PATH" ]; then
+    sudo mkdir -p "$APP_PATH"
+    sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
+    sudo chmod -R 750 "$APP_PATH"
+fi
 
 # Create virtual environment
 sudo /opt/pvpccheap/venv/bin/pip install dist/pvpccheap-0.1-py3-none-any.whl
