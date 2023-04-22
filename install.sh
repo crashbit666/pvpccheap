@@ -20,8 +20,13 @@ pip3 install --user wheel
 sudo getent group pvpccheap || sudo groupadd -r pvpccheap
 sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -s /sbin/nologin -c "PVPC Cheap user" pvpccheap
 
-# Create virtual environment
-sudo /usr/bin/pip install dist/pvpccheap-0.1-py3-none-any.whl
+sudo python3 -m venv /opt/pvpccheap/venv
+# Activate virtual environment
+source /opt/pvpccheap/venv/bin/activate
+# Install package
+pip install dist/pvp-0.1.0-py3-none-any.whl
+# Deactivate virtual environment
+deactivate
 
 # Assign permissions to the application folder
 APP_PATH="/opt/pvpccheap"
