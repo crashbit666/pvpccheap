@@ -13,6 +13,12 @@ then
     exit
 fi
 
+# Create the application directory if it does not exist
+APP_PATH="/opt/pvpccheap"
+if [ ! -d "$APP_PATH" ]; then
+    sudo mkdir -p "$APP_PATH"
+fi
+
 # Install necessary packages
 pip3 install --user wheel
 
@@ -24,7 +30,7 @@ sudo python3 -m venv /opt/pvpccheap/venv
 # Activate virtual environment
 source /opt/pvpccheap/venv/bin/activate
 # Install package
-pip install dist/pvp-0.1.0-py3-none-any.whl
+pip install dist/pvpccheap-0.1.0-py3-none-any.whl
 # Deactivate virtual environment
 deactivate
 
