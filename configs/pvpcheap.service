@@ -4,10 +4,10 @@ After=multi-user.target
 
 [Service]
 Type=simple
-User=crashbit
-Group=crashbit
-Restart=always
-ExecStart=/home/crashbit/Programació/Projectes/pvpccheap/venv/bin/python /home/crashbit/Programació/Projectes/pvpccheap/pvpccheap.py
+User=pvpccheap
+Group=pvpccheap
+Restart=allways
+ExecStart=/opt/pvpccheap/venv/bin/python /opt/pvpccheap/pvpccheap.py
 
 [Install]
 WantedBy=multi-user.target

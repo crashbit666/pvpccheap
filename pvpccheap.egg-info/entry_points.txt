@@ -1,0 +1,2 @@
+[console_scripts]
+pvpccheap = pvpccheap.main

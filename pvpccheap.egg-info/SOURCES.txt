@@ -1,0 +1,9 @@
+LICENSE.md
+README.md
+setup.py
+pvpccheap.egg-info/PKG-INFO
+pvpccheap.egg-info/SOURCES.txt
+pvpccheap.egg-info/dependency_links.txt
+pvpccheap.egg-info/entry_points.txt
+pvpccheap.egg-info/requires.txt
+pvpccheap.egg-info/top_level.txt
