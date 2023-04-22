@@ -30,9 +30,9 @@ sudo python3 -m venv /opt/pvpccheap/venv
 # Activate virtual environment
 sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate"
 # Install package
-pip install dist/pvpccheap-0.1-py3-none-any.whl
+sudo -H -u pvpccheap bash -c "pip install dist/pvpccheap-0.1-py3-none-any.whl"
 # Deactivate virtual environment
-deactivate
+sudo -H -u pvpccheap bash -c "deactivate"
 
 # Assign permissions to the application folder
 APP_PATH="/opt/pvpccheap"
