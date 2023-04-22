@@ -165,8 +165,8 @@ class Device:
 def update_cheap_hours(_electric_price_checker, _max_hours, _current_day):
     try:
         return _electric_price_checker.get_best_hours(_max_hours, _current_day)
-    except ElectricPriceCheckerException as e:
-        logger.error("Error getting cheap hours: %s" % str(e))
+    except ElectricPriceCheckerException as ex:
+        logger.error("Error getting cheap hours: %s" % str(ex))
         return []
 
 
