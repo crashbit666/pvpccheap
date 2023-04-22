@@ -28,9 +28,9 @@ sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -
 
 sudo python3 -m venv /opt/pvpccheap/venv
 # Activate virtual environment
-source /opt/pvpccheap/venv/bin/activate
+sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate"
 # Install package
-pip install dist/pvpccheap-0.1.0-py3-none-any.whl
+pip install dist/pvpccheap-0.1-py3-none-any.whl
 # Deactivate virtual environment
 deactivate
 
