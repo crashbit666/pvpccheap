@@ -21,7 +21,7 @@ sudo getent group pvpccheap || sudo groupadd -r pvpccheap
 sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -s /sbin/nologin -c "PVPC Cheap user" pvpccheap
 
 # Create virtual environment
-sudo /opt/pvpccheap/venv/bin/pip install dist/pvpccheap-0.1-py3-none-any.whl
+sudo /usr/bin/pip install dist/pvpccheap-0.1-py3-none-any.whl
 
 # Assign permissions to the application folder
 APP_PATH="/opt/pvpccheap"
