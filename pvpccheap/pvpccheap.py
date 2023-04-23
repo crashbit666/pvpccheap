@@ -1,3 +1,4 @@
+
 # This is a program that search the best hours to charge electric devices.
 # Version: Beta 7
 import datetime
