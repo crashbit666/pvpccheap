@@ -1,6 +1,9 @@
 LICENSE.md
 README.md
 setup.py
+pvpccheap/__init__.py
+pvpccheap/pvpccheap.py
+pvpccheap/secrets.py
 pvpccheap.egg-info/PKG-INFO
 pvpccheap.egg-info/SOURCES.txt
 pvpccheap.egg-info/dependency_links.txt
