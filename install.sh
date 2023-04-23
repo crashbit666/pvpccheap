@@ -41,7 +41,7 @@ sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
 sudo chmod -R 750 "$APP_PATH"
 
 # Install systemd unit file
-sudo cp configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
+sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
 # Enable and activate systemd unit
 sudo systemctl enable pvpccheap.service
 sudo systemctl start pvpccheap.service
