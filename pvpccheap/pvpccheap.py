@@ -9,7 +9,7 @@ import logging.handlers
 import firebase_admin
 from firebase_admin import credentials, db
 import requests as requests
-from secrets import secrets
+from pvpccheap.secrets import secrets
 
 
 class Webhooks:
