@@ -35,7 +35,7 @@ APP_PATH="/opt/pvpccheap"
 sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
 sudo chmod -R 750 "$APP_PATH"
 
-sudo python3 -m venv /opt/pvpccheap/venv
+sudo -H -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 # Activate virtual environment and install package
 sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && /opt/pvpccheap/venv/bin/pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
 
