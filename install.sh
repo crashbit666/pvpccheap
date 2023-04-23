@@ -37,7 +37,7 @@ sudo chmod -R 750 "$APP_PATH"
 
 sudo python3 -m venv /opt/pvpccheap/venv
 # Activate virtual environment and install package
-sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
+sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && /opt/pvpccheap/venv/bin/pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
