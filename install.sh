@@ -30,15 +30,14 @@ sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -
 sudo cp dist/pvpccheap-0.1-py3-none-any.whl /opt/pvpccheap/
 sudo chown pvpccheap:pvpccheap /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl
 
-
-sudo python3 -m venv /opt/pvpccheap/venv
-# Activate virtual environment and install package
-sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
-
 # Assign permissions to the application folder
 APP_PATH="/opt/pvpccheap"
 sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
 sudo chmod -R 750 "$APP_PATH"
+
+sudo python3 -m venv /opt/pvpccheap/venv
+# Activate virtual environment and install package
+sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
