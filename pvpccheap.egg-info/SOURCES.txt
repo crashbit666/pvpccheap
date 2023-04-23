@@ -2,6 +2,7 @@ LICENSE.md
 README.md
 setup.py
 pvpccheap/__init__.py
+pvpccheap/pvpccheap-firebase-adminsdk-yel11-65a454a38e.json
 pvpccheap/pvpccheap.py
 pvpccheap/secrets.py
 pvpccheap.egg-info/PKG-INFO
