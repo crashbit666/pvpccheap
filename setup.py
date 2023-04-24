@@ -13,5 +13,4 @@ setup(
             'pvpccheap = pvpccheap:main',
         ],
     },
-    package_data={'pvpccheap': ['*.json']},
 )
