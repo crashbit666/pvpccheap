@@ -8,8 +8,11 @@ import pytz
 import logging
 import logging.handlers
 import firebase_admin
-from firebase_admin import credentials, db
+import mysql.connector
+import bcrypt
 import requests as requests
+from mysql.connector import errorcode
+from firebase_admin import credentials, db
 from pvpccheap.secrets import secrets
 
 
@@ -97,6 +100,7 @@ class Logger:
         self.logger.error(message)
 
 
+"""
 class FirebaseHandler:
     def __init__(self, credential_path, database_url, logger):
         cred = credentials.Certificate(credential_path)
@@ -118,6 +122,100 @@ class FirebaseHandler:
         ref = self.db.child(f'devices/{device_name}/sleep_hours_weekend')
         self.logger.debug("Sleep hours weekend: %s" % ref.get())
         return ref.get()
+"""
+
+
+class MariaDBHandler:
+    def __init__(self, logger, user=secrets.get('DB_USER'), password=secrets.get('DB_PASSWORD'),
+                 host=secrets.get('DB_HOST'), database=secrets.get('DB_NAME')):
+        self.user = user
+        self.password = password
+        self.host = host
+        self.database = database
+        self.logger = logger
+
+    def _connect(self):
+        try:
+            cnx = mysql.connector.connect(user=self.user, password=self.password, host=self.host,
+                                          database=self.database)
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                self.logger.error("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                self.logger.error("Database does not exist")
+            else:
+                self.logger.error(err)
+            raise
+        return cnx
+
+    def register_user(self, username, password):
+        cnx = self._connect()
+        cursor = cnx.cursor()
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
+            cnx.commit()
+            self.logger.info("User %s registered successfully" % username)
+        except mysql.connector.Error as err:
+            self.logger.error("Error registering user %s: %s" % (username, str(err)))
+            raise
+        finally:
+            cursor.close()
+            cnx.close()
+
+    def login_user(self, username, password):
+        cnx = self._connect()
+        cursor = cnx.cursor()
+        cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        cursor.close()
+        cnx.close()
+
+        if result:
+            stored_password = result[0]
+            if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+                self.logger.info("User %s logged in successfully" % username)
+                return True
+            else:
+                self.logger.error("Invalid password for user %s" % username)
+                return False
+        else:
+            self.logger.error("User %s not found" % username)
+            return False
+
+    def get_user_id(self, username):
+        cnx = self._connect()
+        cursor = cnx.cursor()
+        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        cursor.close()
+        cnx.close()
+
+        if result:
+            user_id = result[0]
+            self.logger.debug("User ID for %s: %s" % (username, user_id))
+            return user_id
+        else:
+            self.logger.error("User %s not found" % username)
+            return None
+
+    def get_device_settings(self, user_id, device_name):
+        cnx = self._connect()
+        cursor = cnx.cursor()
+        cursor.execute("SELECT sleep_hours, sleep_hours_weekend, max_hours FROM device_settings WHERE user_id = %s AND "
+                       "device_name = %s", (user_id, device_name))
+        result = cursor.fetchone()
+        cursor.close()
+        cnx.close()
+
+        if result:
+            sleep_hours, sleep_hours_weekend, max_hours = result
+            self.logger.debug("Sleep hours: %s, Sleep hours weekend: %s, Max hours: %s" % (sleep_hours,
+                                                                                           sleep_hours_weekend,
+                                                                                           max_hours))
+            return sleep_hours, sleep_hours_weekend, max_hours
+        else:
+            return None, None, None
 
 
 class DateTimeHelper:
@@ -133,14 +231,18 @@ class DateTimeHelper:
 
 
 class Device:
-    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend, logger, webhooks):
+    def __init__(self, name, webhook_key, sleep_hours, sleep_hours_weekend, max_hours, logger, webhooks,
+                 device_name, mariadb_handler):
         self.name = name
         self.webhook_key = webhook_key
         self.sleep_hours = sleep_hours
         self.sleep_hours_weekend = sleep_hours_weekend
+        self.max_hours = max_hours
         self.actual_status = False
         self.logger = logger
         self.webhooks = webhooks
+        self.device_name = device_name
+        self._mariadb_handler = mariadb_handler
 
     def activate(self):
         self.actual_status = True
@@ -163,27 +265,95 @@ class Device:
         self.logger.debug("Device status for %s: %s" % (self.name, "ON" if _device_status else "OFF"))
         self.logger.debug("Current status for %s: %s" % (self.name, "ON" if self.actual_status else "OFF"))
 
+    @staticmethod
+    def create_device(electric_price_checker, device_name, logger, webhooks, user_id, mariadb_handler):
+        sleep_hours, sleep_hours_weekend, max_hours = mariadb_handler.get_device_settings(user_id, device_name)
+        return Device(device_name, webhooks.webhook_key, sleep_hours, sleep_hours_weekend, max_hours, logger, webhooks,
+                      device_name, mariadb_handler)
 
-def update_cheap_hours(_electric_price_checker, _max_hours, _current_day, logger):
+
+def update_cheap_hours(_electric_price_checker, device, _current_day, logger):
     try:
-        return _electric_price_checker.get_best_hours(_max_hours, _current_day)
+        return _electric_price_checker.get_best_hours(device.max_hours, _current_day)
     except ElectricPriceCheckerException as ex:
         logger.error("Error getting cheap hours: %s" % str(ex))
         return []
 
 
-def is_in_cheap_hours(in_cheap_hours, in_current_time):
-    return in_current_time in in_cheap_hours
+def is_in_cheap_hours(device, in_current_time):
+    return in_current_time in device.cheap_hours
+
+
+def register_user(mariadb_handler):
+    print("Register a new user")
+    username = input("Enter a username: ")
+    password = input("Enter a password: ")
+    try:
+        mariadb_handler.register_user(username, password)
+        print("User registered successfully")
+    except Exception as e:
+        print("Error registering user:", e)
+
+
+def login_user(mariadb_handler, logger):
+    username = input("Enter your username: ")
+    cursor = mariadb_handler.cnx.cursor()
+    cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
+    result = cursor.fetchone()
+    cursor.close()
+
+    if result:
+        stored_password = result[0]
+        password = input("Enter your password: ")
+        if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+            logger.info("User %s logged in successfully" % username)
+            return True
+        else:
+            logger.error("Invalid password for user %s" % username)
+            return False
+    else:
+        logger.error("User %s not found" % username)
+        return False
+
+
+def login(mariadb_handler, logger):
+    # User registration and login
+    while True:
+        print("Choose an option:")
+        print("1. Register")
+        print("2. Login")
+        print("3. Exit")
+
+        choice = input("Enter the number of your choice: ")
+
+        if choice == "1":
+            register_user(mariadb_handler)
+        elif choice == "2":
+            if login_user(mariadb_handler, logger):
+                user_id = mariadb_handler.get_user_id(mariadb_handler)
+                return user_id
+            else:
+                print("Invalid username or password")
+        elif choice == "3":
+            mariadb_handler.close_connection()
+            return
 
 
 def main():
     # Initialize logger
     logger = Logger()
 
+    """
     # Initialize Firebase
     firebase_handler = FirebaseHandler(
         secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL'), logger
     )
+    """
+
+    # Initialize MariaDB
+    mariadb_handler = MariaDBHandler(logger)
+
+    user_id = login(mariadb_handler, logger)
 
     # Initialize DateTimeHelper and ElectricPriceChecker
     electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid', logger)
@@ -194,18 +364,14 @@ def main():
 
     # Initialize devices
     devices = [
-        Device("Scooter", "scooter", None, None, logger, webhooks),
-        Device("Boiler", "boiler", None, None, logger, webhooks),
-        Device("Papas Stove", "papas_stove", firebase_handler.get_sleep_hours('papas_stove'),
-               firebase_handler.get_sleep_hours_weekend('papas_stove'), logger, webhooks),
-        Device("Enzo Stove", "enzo_stove", firebase_handler.get_sleep_hours('enzo_stove'),
-               firebase_handler.get_sleep_hours_weekend('enzo_stove'), logger, webhooks)
+        Device.create_device("Scooter", logger, webhooks, user_id, mariadb_handler),
+        Device.create_device("Boiler", logger, webhooks, user_id, mariadb_handler),
+        Device.create_device("Papas Stove", logger, webhooks, user_id, mariadb_handler),
+        Device.create_device("Enzo Stove", logger, webhooks, user_id, mariadb_handler)
     ]
 
     # Initialize current_day, current_time and cheap_hours
-    max_hours = firebase_handler.get_max_hours()
     current_day, current_time, current_week_day = datetime_helper.get_dates()
-    cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day, logger)
 
     # Infinite loop
     while True:
@@ -219,13 +385,15 @@ def main():
         if current_day != current_date:
             current_day = current_date
             current_week_day = current_week_day
-            try:
-                cheap_hours = update_cheap_hours(electric_price_checker, max_hours, current_day, logger)
-            except ElectricPriceCheckerException as e:
-                logger.error("Error getting cheap hours: %s" % str(e))
-                continue
+            for device in devices:
+                try:
+                    device.cheap_hours = update_cheap_hours(electric_price_checker, device, current_day, logger)
+                except ElectricPriceCheckerException as e:
+                    logger.error("Error getting cheap hours: %s" % str(e))
+                    continue
 
-        is_cheap = is_in_cheap_hours(cheap_hours, current_time)
+        for device in devices:
+            is_cheap = is_in_cheap_hours(device, current_time)
         is_weekend = current_week_day >= 5
 
         for device in devices:

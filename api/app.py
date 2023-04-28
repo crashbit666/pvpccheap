@@ -32,11 +32,5 @@ class CheapestHours(Resource):
 api.add_resource(CheapestHours, '/cheapest-hours', endpoint='cheapest-hours')
 
 
-"""
-@app.route('/')
-def index():
-    return render_template('index.html')
-"""
-
 if __name__ == '__main__':
     app.run(debug=True)
