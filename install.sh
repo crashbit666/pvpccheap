@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Check if python and pip are installed
 if ! command -v python3 &> /dev/null
 then
@@ -13,31 +15,32 @@ then
     exit
 fi
 
+# Change to directory where the script is located
+cd "$(dirname "$0")"
+
 # Create the application directory if it does not exist
 APP_PATH="/opt/pvpccheap"
 if [ ! -d "$APP_PATH" ]; then
     sudo mkdir -p "$APP_PATH"
 fi
 
-# Install necessary packages
-pip3 install --user wheel
-
 # Creates a group and user for the application if they don't exist
 sudo getent group pvpccheap || sudo groupadd -r pvpccheap
 sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -s /sbin/nologin -c "PVPC Cheap user" pvpccheap
 
 # Copy the package file to the application directory and set the permissions
-sudo cp dist/pvpccheap-0.1-py3-none-any.whl /opt/pvpccheap/
-sudo chown pvpccheap:pvpccheap /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl
+sudo chown pvpccheap: /opt/pvpccheap
 
-# Assign permissions to the application folder
-APP_PATH="/opt/pvpccheap"
-sudo chown -R pvpccheap:pvpccheap "$APP_PATH"
-sudo chmod -R 750 "$APP_PATH"
-
-sudo -H -u pvpccheap python3 -m venv /opt/pvpccheap/venv
-# Activate virtual environment and install package
-sudo -H -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && /opt/pvpccheap/venv/bin/pip install /opt/pvpccheap/pvpccheap-0.1-py3-none-any.whl"
+# Install the package in the application directory using pip
+# shellcheck disable=SC2144
+if [ -e dist/*.whl ]; then
+    sudo -u pvpccheap pip install --target /opt/pvpccheap dist/*.whl
+elif [ -e dist/*.tar.gz ]; then
+    sudo -u pvpccheap pip install --target /opt/pvpccheap dist/*.tar.gz
+else
+    echo "Doesn't exist any package to install. Be sure to build the package before running this script."
+    exit 1
+fi
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
