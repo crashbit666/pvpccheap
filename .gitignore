@@ -1,3 +1,4 @@
 /.idea
-/pvpccheap/pvpccheap-firebase-adminsdk-yel11-65a454a38e.json
 /pvpccheap/secrets.py
+api/__pycache__
+pvpccheap/__pycache__
