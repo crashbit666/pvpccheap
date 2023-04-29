@@ -8,7 +8,7 @@ User=pvpccheap
 Group=pvpccheap
 Restart=on-failure
 WorkingDirectory=/opt/pvpccheap/pvpccheap
-ExecStart=/opt/pvpccheap/venv/bin/python /opt/pvpccheap/pvpccheap/pvpccheap.py
+ExecStart=/opt/pvpccheap/venv/bin/python -m pvpccheap.pvpccheap
 
 [Install]
 WantedBy=multi-user.target
