@@ -7,12 +7,10 @@ import time
 import pytz
 import logging
 import logging.handlers
-import firebase_admin
 import mysql.connector
 import bcrypt
 import requests as requests
 from mysql.connector import errorcode
-from firebase_admin import credentials, db
 from pvpccheap.secrets import secrets
 
 
@@ -98,31 +96,6 @@ class Logger:
 
     def error(self, message):
         self.logger.error(message)
-
-
-"""
-class FirebaseHandler:
-    def __init__(self, credential_path, database_url, logger):
-        cred = credentials.Certificate(credential_path)
-        firebase_admin.initialize_app(cred, {'databaseURL': database_url})
-        self.db = db.reference()
-        self.logger = logger
-
-    def get_max_hours(self):
-        ref = self.db.child('max_hours')
-        self.logger.debug("Max hours: %s" % ref.get())
-        return ref.get()
-
-    def get_sleep_hours(self, device_name):
-        ref = self.db.child(f'devices/{device_name}/sleep_hours')
-        self.logger.debug("Sleep hours: %s" % ref.get())
-        return ref.get()
-
-    def get_sleep_hours_weekend(self, device_name):
-        ref = self.db.child(f'devices/{device_name}/sleep_hours_weekend')
-        self.logger.debug("Sleep hours weekend: %s" % ref.get())
-        return ref.get()
-"""
 
 
 class MariaDBHandler:
@@ -250,8 +223,8 @@ class Device:
     def deactivate(self):
         self.actual_status = False
 
-    def process_device(self, _device_status):
-        if _device_status:
+    def process_device(self, device_status):
+        if device_status:
             if not self.actual_status:
                 self.activate()
                 while not self.webhooks.do_webhooks_request('_pvpc_down'):
@@ -262,14 +235,60 @@ class Device:
                 while not self.webhooks.do_webhooks_request('_pvpc_high'):
                     time.sleep(1)
 
-        self.logger.debug("Device status for %s: %s" % (self.name, "ON" if _device_status else "OFF"))
+        self.logger.debug("Device status for %s: %s" % (self.name, "ON" if device_status else "OFF"))
         self.logger.debug("Current status for %s: %s" % (self.name, "ON" if self.actual_status else "OFF"))
 
     @staticmethod
-    def create_device(electric_price_checker, device_name, logger, webhooks, user_id, mariadb_handler):
+    def create_device(device_name, logger, webhooks, user_id, mariadb_handler):
         sleep_hours, sleep_hours_weekend, max_hours = mariadb_handler.get_device_settings(user_id, device_name)
         return Device(device_name, webhooks.webhook_key, sleep_hours, sleep_hours_weekend, max_hours, logger, webhooks,
                       device_name, mariadb_handler)
+
+
+class DeviceManager:
+    def __init__(self, logger, electric_price_checker, datetime_helper, webhooks, mariadb_handler):
+        self.logger = logger
+        self.electric_price_checker = electric_price_checker
+        self.datetime_helper = datetime_helper
+        self.webhooks = webhooks
+        self.mariadb_handler = mariadb_handler
+        self.devices = []
+
+    def add_device(self, user_id, device_name):
+        device = Device.create_device(device_name, self.logger, self.webhooks, user_id, self.mariadb_handler)
+        self.devices.append(device)
+
+    def update_cheap_hours(self):
+        current_day, _, _ = self.datetime_helper.get_dates()
+        for device in self.devices:
+            try:
+                device.cheap_hours = update_cheap_hours(self.electric_price_checker, device, current_day, self.logger)
+            except ElectricPriceCheckerException as e:
+                self.logger.error("Error getting cheap hours: %s" % str(e))
+
+    def process_devices(self):
+        _, current_time, current_week_day = self.datetime_helper.get_dates()
+        is_weekend = current_week_day >= 5
+
+        for device in self.devices:
+            is_cheap = is_in_cheap_hours(device, current_time)
+
+            if device.sleep_hours is None:
+                device.process_device(is_cheap)
+            else:
+                device_status = is_cheap and (
+                        current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
+                device.process_device(device_status)
+
+    def run(self):
+        self.update_cheap_hours()
+
+        while True:
+            delay = (60 - datetime.datetime.now().minute) * 60
+            time.sleep(delay)
+
+            self.update_cheap_hours()
+            self.process_devices()
 
 
 def update_cheap_hours(_electric_price_checker, device, _current_day, logger):
@@ -343,13 +362,6 @@ def main():
     # Initialize logger
     logger = Logger()
 
-    """
-    # Initialize Firebase
-    firebase_handler = FirebaseHandler(
-        secrets.get('JSON_FILE'), secrets.get('FIREBASE_URL'), logger
-    )
-    """
-
     # Initialize MariaDB
     mariadb_handler = MariaDBHandler(logger)
 
@@ -363,48 +375,15 @@ def main():
     webhooks = Webhooks(secrets.get('WEBHOOKS_KEY'))
 
     # Initialize devices
-    devices = [
-        Device.create_device("Scooter", logger, webhooks, user_id, mariadb_handler),
-        Device.create_device("Boiler", logger, webhooks, user_id, mariadb_handler),
-        Device.create_device("Papas Stove", logger, webhooks, user_id, mariadb_handler),
-        Device.create_device("Enzo Stove", logger, webhooks, user_id, mariadb_handler)
-    ]
+    # Initialize DeviceManager and add devices
+    device_manager = DeviceManager(logger, electric_price_checker, datetime_helper, webhooks, mariadb_handler)
+    device_manager.add_device(user_id, "Scooter")
+    device_manager.add_device(user_id, "Boiler")
+    device_manager.add_device(user_id, "Papas Stove")
+    device_manager.add_device(user_id, "Enzo Stove")
 
-    # Initialize current_day, current_time and cheap_hours
-    current_day, current_time, current_week_day = datetime_helper.get_dates()
-
-    # Infinite loop
-    while True:
-        # get delay time until o'clock
-        delay = (60 - datetime.datetime.now().minute) * 60
-
-        # get current date, hour, and weekday
-        current_date, current_time, current_week_day = datetime_helper.get_dates()
-
-        # Check if current_day == actual date, if not, update current_day to actual date and cheap_hours.
-        if current_day != current_date:
-            current_day = current_date
-            current_week_day = current_week_day
-            for device in devices:
-                try:
-                    device.cheap_hours = update_cheap_hours(electric_price_checker, device, current_day, logger)
-                except ElectricPriceCheckerException as e:
-                    logger.error("Error getting cheap hours: %s" % str(e))
-                    continue
-
-        for device in devices:
-            is_cheap = is_in_cheap_hours(device, current_time)
-        is_weekend = current_week_day >= 5
-
-        for device in devices:
-            if device.sleep_hours is None:  # Devices without sleep hours, such as Scooter and Boiler
-                device.process_device(is_cheap)
-            else:  # Devices with sleep hours, such as Papas Stove and Enzo Stove
-                device_status = is_cheap and (
-                        current_time in (device.sleep_hours_weekend if is_weekend else device.sleep_hours))
-                device.process_device(device_status)
-
-        time.sleep(delay)
+    # Run the DeviceManager
+    device_manager.run()
 
 
 # Start point
