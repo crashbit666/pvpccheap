@@ -13,7 +13,7 @@ Jinja2==3.1.2
 MarkupSafe==2.1.2
 mysql-connector-python==8.0.33
 packaging==23.1
-protobuf==4.22.3
+protobuf
 pyproject_hooks==1.0.0
 pytz==2023.3
 requests==2.29.0
