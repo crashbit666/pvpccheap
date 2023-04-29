@@ -48,6 +48,10 @@ else
     exit 1
 fi
 
+# Remove temp directory
+rm /tmp/*.whl
+rm /tmp/*.tar.gz
+
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
 # Enable and activate systemd unit
