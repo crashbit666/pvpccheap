@@ -6,8 +6,8 @@ After=multi-user.target
 Type=simple
 User=pvpccheap
 Group=pvpccheap
-Environment="PATH=/opt/pvpccheap/venv/bin"
 Restart=on-failure
+WorkingDirectory=/opt/pvpccheap/pvpccheap
 ExecStart=/opt/pvpccheap/venv/bin/python /opt/pvpccheap/pvpccheap/pvpccheap.py
 
 [Install]
