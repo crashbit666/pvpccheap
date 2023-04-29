@@ -19,24 +19,26 @@ fi
 cd "$(dirname "$0")"
 
 # Create the application directory if it does not exist
-APP_PATH="/opt/pvpccheap"
-if [ ! -d "$APP_PATH" ]; then
-    sudo mkdir -p "$APP_PATH"
+if [ ! -d "/opt/pvpccheap" ]; then
+    sudo mkdir -p /opt/pvpccheap
 fi
 
 # Creates a group and user for the application if they don't exist
 sudo getent group pvpccheap || sudo groupadd -r pvpccheap
 sudo getent passwd pvpccheap || sudo useradd -r -g pvpccheap -d /opt/pvpccheap -s /sbin/nologin -c "PVPC Cheap user" pvpccheap
 
-# Copy the package file to the application directory and set the permissions
+# Set the owner of the application directory to the user created
 sudo chown pvpccheap: /opt/pvpccheap
 
-# Install the package in the application directory using pip
+# Create a virtual environment in the application directory
+sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
+
+# Install the package in the virtual environment using pip
 # shellcheck disable=SC2144
 if [ -e dist/*.whl ]; then
-    sudo -u pvpccheap pip install --target /opt/pvpccheap dist/*.whl
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install dist/*.whl
 elif [ -e dist/*.tar.gz ]; then
-    sudo -u pvpccheap pip install --target /opt/pvpccheap dist/*.tar.gz
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install dist/*.tar.gz
 else
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1

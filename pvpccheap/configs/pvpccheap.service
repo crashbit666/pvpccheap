@@ -7,7 +7,7 @@ Type=simple
 User=pvpccheap
 Group=pvpccheap
 Restart=on-failure
-ExecStart=/opt/pvpccheap/venv/bin/python /opt/pvpccheap/venv/bin/pvpccheap
+ExecStart=/opt/pvpccheap/venv/bin/python /opt/pvpccheap/pvpccheap/pvpccheap.py
 
 [Install]
 WantedBy=multi-user.target
