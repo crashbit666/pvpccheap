@@ -34,15 +34,15 @@ sudo chown pvpccheap: /opt/pvpccheap
 sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 
 # Copy dist files to a temp directory
-cp dist/*.whl /tmp/pvpccheap.whl
-cp dist/*.tar.gz /tmp/pvpccheap.tar.gz
+cp dist/*.whl /tmp/
+cp dist/*.tar.gz /tmp/
 
 # Install the package in the virtual environment using pip
 # shellcheck disable=SC2144
 if [ -e dist/*.whl ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/pvpccheap.whl
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/*.whl
 elif [ -e dist/*.tar.gz ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/pvpccheap.tar.gz
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/*.tar.gz
 else
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1
