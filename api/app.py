@@ -22,9 +22,8 @@ class CheapestHours(Resource):
 
     def get(self):
         # Get cheap hours
-        max_hours = 6
         current_day, current_time, current_week_day = self.datetime_helper.get_dates()
-        cheap_hours = update_cheap_hours(self.electric_price_checker, max_hours, current_day, self.logger)
+        cheap_hours = update_cheap_hours(self.electric_price_checker, current_day, self.logger)
 
         return jsonify({"cheapest_hours": cheap_hours})
 

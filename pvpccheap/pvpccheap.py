@@ -1,6 +1,6 @@
 
-# This is a program that search the best hours to charge electric devices.
-# Version: Beta 7
+# This program search the cheapest hours of the day and activate or deactivate deices using webhooks
+# Version: Beta 8
 import datetime
 import json
 import time
@@ -14,6 +14,7 @@ from mysql.connector import errorcode
 from pvpccheap.secrets import secrets
 
 
+# This class sends a request to IFTTT webhooks for activate/deactivate devices
 class Webhooks:
     def __init__(self, webhook_apikey):
         self.webhook_apikey = webhook_apikey
@@ -33,6 +34,7 @@ class Webhooks:
             return False
 
 
+# This class get the best hours from ESIOS API
 class ElectricPriceChecker:
     def __init__(self, _secrets, timezone, logger):
         self.token = _secrets.get('TOKEN')
@@ -40,7 +42,7 @@ class ElectricPriceChecker:
         self.timezone = timezone
         self.logger = logger
 
-    def get_best_hours(self, max_items, actual_date):
+    def get_best_hours(self, actual_date):
         local_timezone = pytz.timezone(self.timezone)
         start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
                                              is_dst=None).isoformat()
@@ -67,7 +69,7 @@ class ElectricPriceChecker:
             raise ElectricPriceCheckerException("Error connecting to ESIOS API.")
 
         # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
-        pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])[0:max_items]
+        pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])
         for i in pkw:
             hours.append(i[0])
 
@@ -79,6 +81,7 @@ class ElectricPriceCheckerException(Exception):
     pass
 
 
+# This class is used to log messages to syslog systemctl status pvpccheap.service and journalctl -u pvpccheap.service
 class Logger:
     def __init__(self):
         self.logger = logging.getLogger()
@@ -98,6 +101,7 @@ class Logger:
         self.logger.error(message)
 
 
+# This class is used to manage mariadb database connection, create tables and insert data
 class MariaDBHandler:
     def __init__(self, logger, user=secrets.get('DB_USER'), password=secrets.get('DB_PASSWORD'),
                  host=secrets.get('DB_HOST'), database=secrets.get('DB_NAME')):
@@ -107,7 +111,7 @@ class MariaDBHandler:
         self.database = database
         self.logger = logger
 
-    def _connect(self):
+    def connect(self):
         try:
             cnx = mysql.connector.connect(user=self.user, password=self.password, host=self.host,
                                           database=self.database)
@@ -122,7 +126,7 @@ class MariaDBHandler:
         return cnx
 
     def register_user(self, username, password):
-        cnx = self._connect()
+        cnx = self.connect()
         cursor = cnx.cursor()
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         try:
@@ -137,7 +141,7 @@ class MariaDBHandler:
             cnx.close()
 
     def login_user(self, username, password):
-        cnx = self._connect()
+        cnx = self.connect()
         cursor = cnx.cursor()
         cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
         result = cursor.fetchone()
@@ -157,7 +161,7 @@ class MariaDBHandler:
             return False
 
     def get_user_id(self, username):
-        cnx = self._connect()
+        cnx = self.connect()
         cursor = cnx.cursor()
         cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
         result = cursor.fetchone()
@@ -173,7 +177,7 @@ class MariaDBHandler:
             return None
 
     def get_device_settings(self, user_id, device_name):
-        cnx = self._connect()
+        cnx = self.connect()
         cursor = cnx.cursor()
         cursor.execute("SELECT sleep_hours, sleep_hours_weekend, max_hours FROM device_settings WHERE user_id = %s AND "
                        "device_name = %s", (user_id, device_name))
