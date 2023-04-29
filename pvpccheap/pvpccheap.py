@@ -369,7 +369,8 @@ def main():
     # Initialize MariaDB
     mariadb_handler = MariaDBHandler(logger)
 
-    user_id = login(mariadb_handler, logger)
+    # user_id = login(mariadb_handler, logger)
+    user_id = 1
 
     # Initialize DateTimeHelper and ElectricPriceChecker
     electric_price_checker = ElectricPriceChecker(secrets, 'Europe/Madrid', logger)
