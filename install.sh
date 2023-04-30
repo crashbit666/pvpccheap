@@ -36,13 +36,16 @@ sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 # Create a temporary directory
 tmpdir=$(mktemp -d)
 
-# Change permissions to the whl and tar.gz files
-sudo chown pvpccheap: dist/*.whl
-sudo chown pvpccheap: dist/*.tar.gz
+# Create a temporary directory
+tmpdir=$(mktemp -d)
 
 # Copy the package files to the temporary directory
-sudo cp dist/*.whl "${tmpdir}/" || true
-sudo cp dist/*.tar.gz "${tmpdir}/" || true
+cp dist/*.whl "${tmpdir}/" || true
+cp dist/*.tar.gz "${tmpdir}/" || true
+
+# Change permissions of the package files in the temporary directory
+sudo chown pvpccheap: "${tmpdir}"/*.whl || true
+sudo chown pvpccheap: "${tmpdir}"/*.tar.gz || true
 
 # Install the package in the virtual environment using pip
 # shellcheck disable=SC2144
@@ -57,6 +60,7 @@ fi
 
 # Remove the temporary directory
 rm -rf "${tmpdir}"
+
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
