@@ -1,4 +1,3 @@
-Este es el script de instalacion:
 #!/bin/bash
 
 set -e
@@ -43,6 +42,9 @@ sudo cp dist/*.whl dist/*.tar.gz "${temp_dir}/"
 # Change permissions to the whl and tar.gz files in the temporary directory
 sudo chown pvpccheap: "${temp_dir}/"*.whl
 sudo chown pvpccheap: "${temp_dir}/"*.tar.gz
+
+# Give read permission to the pvpccheap user for the temporary directory
+sudo chmod o+rx "${temp_dir}"
 
 # Install the package in the virtual environment using pip
 installed=0
