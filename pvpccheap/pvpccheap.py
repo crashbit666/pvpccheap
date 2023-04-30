@@ -307,61 +307,6 @@ def is_in_cheap_hours(device, in_current_time):
     return in_current_time in device.cheap_hours
 
 
-def register_user(mariadb_handler):
-    print("Register a new user")
-    username = input("Enter a username: ")
-    password = input("Enter a password: ")
-    try:
-        mariadb_handler.register_user(username, password)
-        print("User registered successfully")
-    except Exception as e:
-        print("Error registering user:", e)
-
-
-def login_user(mariadb_handler, logger):
-    username = input("Enter your username: ")
-    cursor = mariadb_handler.cnx.cursor()
-    cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
-    result = cursor.fetchone()
-    cursor.close()
-
-    if result:
-        stored_password = result[0]
-        password = input("Enter your password: ")
-        if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
-            logger.info("User %s logged in successfully" % username)
-            return True
-        else:
-            logger.error("Invalid password for user %s" % username)
-            return False
-    else:
-        logger.error("User %s not found" % username)
-        return False
-
-
-def login(mariadb_handler, logger):
-    # User registration and login
-    while True:
-        print("Choose an option:")
-        print("1. Register")
-        print("2. Login")
-        print("3. Exit")
-
-        choice = input("Enter the number of your choice: ")
-
-        if choice == "1":
-            register_user(mariadb_handler)
-        elif choice == "2":
-            if login_user(mariadb_handler, logger):
-                user_id = mariadb_handler.get_user_id(mariadb_handler)
-                return user_id
-            else:
-                print("Invalid username or password")
-        elif choice == "3":
-            mariadb_handler.close_connection()
-            return
-
-
 def main():
     # Initialize logger
     logger = Logger()

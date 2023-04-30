@@ -7,7 +7,6 @@ Type=simple
 User=pvpccheap
 Group=pvpccheap
 Restart=on-failure
-WorkingDirectory=/opt/pvpccheap/pvpccheap
 ExecStart=/opt/pvpccheap/venv/bin/python -m pvpccheap.pvpccheap
 
 [Install]
