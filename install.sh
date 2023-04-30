@@ -34,8 +34,8 @@ sudo chown pvpccheap: /opt/pvpccheap
 sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 
 # Copy dist files to a temp directory
-chown pvpccheap: dist/*.whl
-chown pvpccheap: dist/*.tar.gz
+sudo chown pvpccheap: dist/*.whl
+sudo chown pvpccheap: dist/*.tar.gz
 
 # Install the package in the virtual environment using pip
 # shellcheck disable=SC2144
