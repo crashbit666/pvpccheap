@@ -1,3 +1,4 @@
+Este es el script de instalacion:
 #!/bin/bash
 
 set -e
@@ -33,34 +34,28 @@ sudo chown pvpccheap: /opt/pvpccheap
 # Create a virtual environment in the application directory
 sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 
-# Create a temporary directory
-tmpdir=$(mktemp -d)
-
-# Create a temporary directory
-tmpdir=$(mktemp -d)
-
-# Copy the package files to the temporary directory
-cp dist/*.whl "${tmpdir}/" || true
-cp dist/*.tar.gz "${tmpdir}/" || true
-
-# Change permissions of the package files in the temporary directory
-sudo chown pvpccheap: "${tmpdir}"/*.whl || true
-sudo chown pvpccheap: "${tmpdir}"/*.tar.gz || true
+# Change permissions to the whl and tar.gz files
+sudo chown pvpccheap: dist/*.whl
+sudo chown pvpccheap: dist/*.tar.gz
 
 # Install the package in the virtual environment using pip
-# shellcheck disable=SC2144
-if [ -e "${tmpdir}"/*.whl ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install "${tmpdir}"/*.whl
-elif [ -e "${tmpdir}"/*.tar.gz ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install "${tmpdir}"/*.tar.gz
-else
+installed=0
+for package in dist/*.whl dist/*.tar.gz; do
+    if [ -e "${package}" ]; then
+        sudo -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install '${package}'"
+        installed=1
+    fi
+done
+
+if [ $installed -eq 0 ]; then
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1
 fi
 
-# Remove the temporary directory
-rm -rf "${tmpdir}"
-
+if [ $installed -eq 0 ]; then
+    echo "Doesn't exist any package to install. Be sure to build the package before running this script."
+    exit 1
+fi
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
