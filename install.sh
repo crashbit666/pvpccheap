@@ -34,28 +34,33 @@ sudo chown pvpccheap: /opt/pvpccheap
 # Create a virtual environment in the application directory
 sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 
-# Change permissions to the whl and tar.gz files
-sudo chown pvpccheap: dist/*.whl
-sudo chown pvpccheap: dist/*.tar.gz
+# Create a temporary directory
+temp_dir=$(mktemp -d)
+
+# Copy the whl and tar.gz files to the temporary directory
+sudo cp dist/*.whl dist/*.tar.gz "${temp_dir}/"
+
+# Change permissions to the whl and tar.gz files in the temporary directory
+sudo chown pvpccheap: "${temp_dir}/"*.whl
+sudo chown pvpccheap: "${temp_dir}/"*.tar.gz
 
 # Install the package in the virtual environment using pip
 installed=0
-for package in dist/*.whl dist/*.tar.gz; do
+for package in "${temp_dir}/"*.whl "${temp_dir}/"*.tar.gz; do
     if [ -e "${package}" ]; then
         sudo -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install '${package}'"
         installed=1
     fi
 done
 
-if [ $installed -eq 0 ]; then
-    echo "Doesn't exist any package to install. Be sure to build the package before running this script."
-    exit 1
-fi
+# Remove the temporary directory
+sudo rm -r "${temp_dir}"
 
 if [ $installed -eq 0 ]; then
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1
 fi
+
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
