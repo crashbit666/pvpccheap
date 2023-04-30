@@ -46,9 +46,15 @@ sudo chown pvpccheap: "${temp_dir}/"*.tar.gz
 # Give read permission to the pvpccheap user for the temporary directory
 sudo chmod o+rx "${temp_dir}"
 
+# Copy the package to the /opt/pvpccheap directory
+sudo cp "${temp_dir}/"*.whl "${temp_dir}/"*.tar.gz /opt/pvpccheap/
+
+# Change permissions of the package in the /opt/pvpccheap directory
+sudo chown pvpccheap: /opt/pvpccheap/*.whl /opt/pvpccheap/*.tar.gz
+
 # Install the package in the virtual environment using pip
 installed=0
-for package in "${temp_dir}/"*.whl "${temp_dir}/"*.tar.gz; do
+for package in /opt/pvpccheap/*.whl /opt/pvpccheap/*.tar.gz; do
     if [ -e "${package}" ]; then
         sudo -u pvpccheap bash -c "source /opt/pvpccheap/venv/bin/activate && pip install '${package}'"
         installed=1
@@ -62,7 +68,6 @@ if [ $installed -eq 0 ]; then
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1
 fi
-
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
