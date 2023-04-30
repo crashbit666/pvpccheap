@@ -34,23 +34,19 @@ sudo chown pvpccheap: /opt/pvpccheap
 sudo -u pvpccheap python3 -m venv /opt/pvpccheap/venv
 
 # Copy dist files to a temp directory
-cp dist/*.whl /tmp/
-cp dist/*.tar.gz /tmp/
+chown pvpccheap: dist/*.whl
+chown pvpccheap: dist/*.tar.gz
 
 # Install the package in the virtual environment using pip
 # shellcheck disable=SC2144
 if [ -e dist/*.whl ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/*.whl
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install dist/*.whl
 elif [ -e dist/*.tar.gz ]; then
-    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install --target /opt/pvpccheap /tmp/*.tar.gz
+    sudo -u pvpccheap /opt/pvpccheap/venv/bin/pip install dist/*.tar.gz
 else
     echo "Doesn't exist any package to install. Be sure to build the package before running this script."
     exit 1
 fi
-
-# Remove temp directory
-rm /tmp/*.whl
-rm /tmp/*.tar.gz
 
 # Install systemd unit file
 sudo cp pvpccheap/configs/pvpccheap.service /etc/systemd/system/pvpccheap.service
