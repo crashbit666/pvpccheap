@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>¡Hello, {{ current_user.username }}!</h1>
+    <h2>Your devices:</h2>
+    {% if current_user.devices %}
+    <ul>
+        {% for devices in current_user.devices %}
+            <li>{{ devices.device_name }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>You don't have any device registered.</p>
+    {% endif %}
+{% endblock %}

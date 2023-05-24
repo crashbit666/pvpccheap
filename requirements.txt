@@ -1,6 +1,0 @@
-Flask
-setuptools
-pytz
-mysql-connector-python
-bcrypt
-requests
