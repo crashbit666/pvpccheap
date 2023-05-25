@@ -1,5 +1,6 @@
 /venv/
+.idea/dataSources.xml
+.idea/sqldialects.xml
+__pycache__/
+app/__pycache__/
 /api_secrets.py
-/.idea
-/__pycache__/
-/app/__pycache__/
