@@ -5,8 +5,26 @@
     <h2>Your devices:</h2>
     {% if current_user.devices %}
     <ul>
-        {% for devices in current_user.devices %}
-            <li>{{ devices.device_name }}</li>
+        {% for device in current_user.devices %}
+            <li>
+                Device Name: {{ device.device_name }} <br>
+                Max Hours: {{ device.max_hours }} <br>
+                Sleep Hours:
+                <ul>
+                    {% for sleep_hour in device.sleep_hours %}
+                        <li>{{ sleep_hour.hour }} : Active? {{ sleep_hour.is_active }}</li>
+                    {% endfor %}
+                </ul>
+                Sleep Hours Weekend:
+                <ul>
+                    {% for sleep_hour_weekend in device.sleep_hours_weekend %}
+                        <li>{{ sleep_hour_weekend.hour }} : Active? {{ sleep_hour_weekend.is_active }}</li>
+                    {% endfor %}
+                </ul>
+                <form action="{{ url_for('remove_device', device_id=device.device_id) }}" method="post">
+                    <input type="submit" value="Remove Device">
+                </form>
+            </li>
         {% endfor %}
     </ul>
     {% else %}

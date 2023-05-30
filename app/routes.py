@@ -3,7 +3,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from urllib.parse import urlsplit
 from app import db
 from app.forms import LoginForm, RegistrationForm, DeviceForm
-from app.models import User
+from app.models import User, Device
 
 
 @current_app.route('/login', methods=['GET', 'POST'])
@@ -50,17 +50,37 @@ def register():
 def add_device():
     form = DeviceForm()
     if form.validate_on_submit():
-        current_user.add_device(form.device_name.data, form.max_hours.data,
-                                form.sleep_hours.data, form.sleep_hours_weekend.data)
+        weekday_hours = [int(hour) for hour in form.active_hours_weekday.data]
+        weekend_hours = [int(hour) for hour in form.active_hours_weekend.data]
+        current_user.add_device(
+            form.device_name.data,
+            form.max_hours.data,
+            weekday_hours,
+            weekend_hours
+        )
         flash('Your device has been added.')
         return redirect(url_for('index'))
+    form.active_hours_weekday.choices = [(str(hour), str(hour)) for hour in range(24)]
+    form.active_hours_weekend.choices = [(str(hour), str(hour)) for hour in range(24)]
     return render_template('add_device.html', form=form)
+
+
+@current_app.route('/remove_device/<int:device_id>', methods=['POST'])
+@login_required
+def remove_device(device_id):
+    device = Device.query.get(device_id)
+    if device is None or device.user != current_user:
+        flash('Device not found.')
+        return redirect(url_for('index'))
+    db.session.delete(device)
+    db.session.commit()
+    flash('Your device has been removed.')
+    return redirect(url_for('index'))
 
 
 @current_app.route('/')
 @current_app.route('/index')
 @login_required
 def index():
-    # devices = current_user.devices.all()
     devices = current_user.devices
     return render_template('index.html', devices=devices)

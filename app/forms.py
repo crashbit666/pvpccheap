@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, IntegerField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, IntegerField, SelectMultipleField, widgets
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, NumberRange
 from app.models import User
 
 
@@ -19,20 +19,34 @@ class RegistrationForm(FlaskForm):
         'Repeat the password', validators=[DataRequired(), EqualTo('password1')])
     submit = SubmitField('Register')
 
-    def validate_username(self, username):
+    @staticmethod
+    def validate_username(username):
         user = User.query.filter_by(username=username.data).first()
         if user is not None:
             raise ValidationError('Please, use another user name.')
 
-    def validate_email(self, user_mail):
+    @staticmethod
+    def validate_email(user_mail):
         user_mail = User.query.filter_by(user_mail=user_mail.data).first()
         if user_mail is not None:
             raise ValidationError('Please use another email.')
 
 
 class DeviceForm(FlaskForm):
-    device_name = StringField('Device Name', validators=[DataRequired()])
-    max_hours = IntegerField('Max Hours', validators=[DataRequired()])
-    sleep_hours = IntegerField('Sleep Hours', validators=[DataRequired()])
-    sleep_hours_weekend = IntegerField('Sleep Hours Weekend', validators=[DataRequired()])
+    device_name = StringField('Device name', validators=[DataRequired()])
+    max_hours = IntegerField('Max hours', validators=[DataRequired(), NumberRange(min=0, max=24)])
+    active_hours_weekday = SelectMultipleField('Weekday Active Hours', choices=[(hour, hour) for hour in range(24)],
+                                               coerce=int, widget=widgets.ListWidget(prefix_label=False),
+                                               option_widget=widgets.CheckboxInput())
+    active_hours_weekend = SelectMultipleField('Weekend Active Hours', choices=[(hour, hour) for hour in range(24)],
+                                               coerce=int, widget=widgets.ListWidget(prefix_label=False),
+                                               option_widget=widgets.CheckboxInput())
     submit = SubmitField('Add Device')
+
+    def validate_active_hours_weekday(self, field):
+        if not field.data:
+            raise ValidationError('Please select at least one hour.')
+
+    def validate_active_hours_weekend(self, field):
+        if not field.data:
+            raise ValidationError('Please select at least one hour.')

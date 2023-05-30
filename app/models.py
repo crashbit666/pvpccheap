@@ -18,25 +18,41 @@ class User(UserMixin, db.Model):
     def get_id(self):
         return self.user_id
 
-    def add_device(self, device_name, max_hours, sleep_hours, sleep_hours_weekend):
-        new_device = Device(device_name=device_name, max_hours=max_hours,
-                            sleep_hours=sleep_hours, sleep_hours_weekend=sleep_hours_weekend, user=self)
-        db.session.add(new_device)
+    def add_device(self, device_name, max_hours, active_hours_weekday, active_hours_weekend):
+        device = Device()
+        device.device_name = device_name
+        device.max_hours = max_hours
+        self.devices.append(device)
         db.session.commit()
-"""
-class Device(db.Model):
-    device_id = db.Column(db.Integer, primary_key=True)
-    device_name = db.Column(db.String(120), index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))
-    user = db.relationship('User', backref='devices')
-"""
+
+        for hour in active_hours_weekday:
+            sleep_hours = SleepHours(hour=hour, is_active=True, is_weekend=False, device_id=device.device_id)
+            db.session.add(sleep_hours)
+        for hour in active_hours_weekend:
+            sleep_hours = SleepHours(hour=hour, is_active=True, is_weekend=True, device_id=device.device_id)
+            db.session.add(sleep_hours)
+
+        db.session.commit()
+        return device
 
 
 class Device(db.Model):
     device_id = db.Column(db.Integer, primary_key=True)
     device_name = db.Column(db.String(120), index=True)
     max_hours = db.Column(db.Integer)
-    sleep_hours = db.Column(db.Integer)
-    sleep_hours_weekend = db.Column(db.Integer)
+    sleep_hours = db.relationship('SleepHours', backref='weekday_device', lazy='dynamic',
+                                  primaryjoin="and_(Device.device_id==SleepHours.device_id, " 
+                                              "SleepHours.is_weekend==False)", cascade="all, delete-orphan")
+    sleep_hours_weekend = db.relationship('SleepHours', backref='weekend_device', lazy='dynamic',
+                                          primaryjoin="and_(Device.device_id==SleepHours.device_id, "
+                                                      "SleepHours.is_weekend==True)", cascade="all, delete-orphan")
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))
     user = db.relationship('User', backref='devices')
+
+
+class SleepHours(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hour = db.Column(db.Integer)
+    is_active = db.Column(db.Boolean)
+    is_weekend = db.Column(db.Boolean)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.device_id'), nullable=False)
