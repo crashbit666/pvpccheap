@@ -8,7 +8,7 @@ import logging
 import logging.handlers
 import time
 
-from api_secrets import secrets
+from app.api_secrets import apisecrets
 from flask import Flask
 from flask_restful import Api
 
@@ -91,7 +91,7 @@ class ElectricPriceCheckerException(Exception):
 
 
 class Webhooks:
-    def __init__(self, webhook_apikey=secrets.get('WEBHOOK_APIKEY')):
+    def __init__(self, webhook_apikey=apisecrets.get('WEBHOOK_APIKEY')):
         self.webhook_apikey = webhook_apikey
 
     def do_webhooks_request(self, pvpc):

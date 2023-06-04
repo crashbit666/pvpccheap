@@ -2,4 +2,5 @@
 .idea/*
 __pycache__/
 app/__pycache__/
-/api_secrets.py
+/app/api_secrets.py
+/app/bbdd_secrets.py
