@@ -1,4 +1,6 @@
 {% block content %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/add_device.css') }}">
+
     <h1>Add Device</h1>
     <form method="POST">
         {{ form.hidden_tag() }}
@@ -10,16 +12,34 @@
         </div>
         <div>
             <p>{{ form.active_hours_weekday.label }}</p>
+            <label for="select_all_weekday"></label><input type="checkbox" id="select_all_weekday"> All hours (Weekdays)
             {% for subfield in form.active_hours_weekday %}
-                <div>{{ subfield() }} {{ subfield.label }}</div>
+                <div>{{ subfield(class_="weekday_hour_checkbox") }} {{ subfield.label }}</div>
             {% endfor %}
         </div>
         <div>
             <p>{{ form.active_hours_weekend.label }}</p>
+            <label for="select_all_weekend"></label><input type="checkbox" id="select_all_weekend"> All hours (Weekends)
             {% for subfield in form.active_hours_weekend %}
-                <div>{{ subfield() }} {{ subfield.label }}</div>
+                <div>{{ subfield(class_="weekend_hour_checkbox") }} {{ subfield.label }}</div>
             {% endfor %}
         </div>
         {{ form.submit() }}
     </form>
+
+    <script>
+        document.getElementById('select_all_weekday').addEventListener('change', function() {
+            const weekdayCheckboxes = document.querySelectorAll('.weekday_hour_checkbox');
+            for (let i = 0; i < weekdayCheckboxes.length; i++) {
+                weekdayCheckboxes[i].checked = this.checked;
+            }
+        });
+
+        document.getElementById('select_all_weekend').addEventListener('change', function() {
+            const weekendCheckboxes = document.querySelectorAll('.weekend_hour_checkbox');
+            for (let i = 0; i < weekendCheckboxes.length; i++) {
+                weekendCheckboxes[i].checked = this.checked;
+            }
+        });
+    </script>
 {% endblock %}

@@ -1,0 +1,98 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    padding: 20px 0;
+}
+
+form {
+    width: 80%;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+}
+
+form div {
+    margin-bottom: 20px;
+}
+
+form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+form input[type="text"], form input[type="number"], form select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+form input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+form input[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+form input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.clock {
+    display: grid;
+    place-items: center;
+    width: 300px;
+    height: 300px;
+    margin: 0 auto;
+    border: 1px solid #000;
+    border-radius: 50%;
+    position: relative;
+}
+
+.hour {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.hour label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    user-select: none;
+}
+
+.hour input[type=checkbox] {
+    display: none;
+}
+
+.hour:nth-child(1) {
+    transform: rotate(0deg);
+}
+
+.hour:nth-child(2) {
+    transform: rotate(15deg);
+}
+
+/* Repite para las 24 horas, incrementando la rotación en 15 grados cada vez */
+
+.hour:nth-child(24) {
+    transform: rotate(345deg);
+}
