@@ -18,9 +18,12 @@ class User(UserMixin, db.Model):
     def get_id(self):
         return self.user_id
 
-    def add_device(self, device_name, max_hours, active_hours_weekday, active_hours_weekend):
+    def add_device(self, device_name, device_protocol, max_hours, active_hours_weekday, active_hours_weekend,
+                   webhook=None):
         device = Device()
         device.device_name = device_name
+        device.device_protocol = device_protocol
+        device.webhook = webhook
         device.max_hours = max_hours
         self.devices.append(device)
         db.session.commit()
@@ -39,6 +42,8 @@ class User(UserMixin, db.Model):
 class Device(db.Model):
     device_id = db.Column(db.Integer, primary_key=True)
     device_name = db.Column(db.String(120), index=True)
+    device_protocol = db.Column(db.String(32), index=True)
+    webhook = db.Column(db.String(128))
     max_hours = db.Column(db.Integer)
     sleep_hours = db.relationship('SleepHours', backref='weekday_device', lazy='dynamic',
                                   primaryjoin="and_(Device.device_id==SleepHours.device_id, " 

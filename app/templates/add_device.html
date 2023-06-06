@@ -1,11 +1,20 @@
+{% extends "base.html" %}
+
 {% block content %}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/add_device.css') }}">
 
     <h1>Add Device</h1>
-    <form method="POST">
+    <form method="POST" class="add_device">
         {{ form.hidden_tag() }}
         <div>
             {{ form.device_name.label }} {{ form.device_name() }}
+        </div>
+        <div>
+            {{ form.device_protocol.label }} {{ form.device_protocol(id='device_protocol') }}
+        </div>
+        <div class="webhook" style="display:none;">
+            {{ form.ifttt_form.webhook.label }} {{ form.ifttt_form.webhook() }}
         </div>
         <div>
             {{ form.max_hours.label }} {{ form.max_hours() }}
@@ -13,31 +22,46 @@
         <div>
             <p>{{ form.active_hours_weekday.label }}</p>
             <label for="select_all_weekday"></label><input type="checkbox" id="select_all_weekday"> All hours (Weekdays)
+            <div class="checkbox-group">
             {% for subfield in form.active_hours_weekday %}
                 <div>{{ subfield(class_="weekday_hour_checkbox") }} {{ subfield.label }}</div>
             {% endfor %}
+            </div>
         </div>
         <div>
             <p>{{ form.active_hours_weekend.label }}</p>
             <label for="select_all_weekend"></label><input type="checkbox" id="select_all_weekend"> All hours (Weekends)
+            <div class="checkbox-group">
             {% for subfield in form.active_hours_weekend %}
                 <div>{{ subfield(class_="weekend_hour_checkbox") }} {{ subfield.label }}</div>
             {% endfor %}
+            </div>
         </div>
         {{ form.submit() }}
     </form>
 
     <script>
+        document.getElementById('device_protocol').addEventListener('change', function() {
+            var webhookDivs = document.querySelectorAll('.webhook');
+            for (var i = 0; i < webhookDivs.length; i++) {
+                if (this.value == 'IFTTT') {
+                    webhookDivs[i].style.display = 'block';
+                } else {
+                    webhookDivs[i].style.display = 'none';
+                }
+            }
+        });
+
         document.getElementById('select_all_weekday').addEventListener('change', function() {
-            const weekdayCheckboxes = document.querySelectorAll('.weekday_hour_checkbox');
-            for (let i = 0; i < weekdayCheckboxes.length; i++) {
+            var weekdayCheckboxes = document.querySelectorAll('.weekday_hour_checkbox');
+            for (var i = 0; i < weekdayCheckboxes.length; i++) {
                 weekdayCheckboxes[i].checked = this.checked;
             }
         });
 
         document.getElementById('select_all_weekend').addEventListener('change', function() {
-            const weekendCheckboxes = document.querySelectorAll('.weekend_hour_checkbox');
-            for (let i = 0; i < weekendCheckboxes.length; i++) {
+            var weekendCheckboxes = document.querySelectorAll('.weekend_hour_checkbox');
+            for (var i = 0; i < weekendCheckboxes.length; i++) {
                 weekendCheckboxes[i].checked = this.checked;
             }
         });

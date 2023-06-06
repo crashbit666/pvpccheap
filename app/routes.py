@@ -50,13 +50,19 @@ def register():
 def add_device():
     form = DeviceForm()
     if form.validate_on_submit():
+        if form.device_protocol.data == 'IFTTT' and not form.ifttt_form.webhook.data:
+            flash('Webhook is required for IFTTT protocol.')
+            return render_template('add_device.html', form=form)
         weekday_hours = [int(hour) for hour in form.active_hours_weekday.data]
         weekend_hours = [int(hour) for hour in form.active_hours_weekend.data]
+        webhook = form.ifttt_form.webhook.data if form.device_protocol.data == 'IFTTT' else None
         current_user.add_device(
             form.device_name.data,
+            form.device_protocol.data,
             form.max_hours.data,
             weekday_hours,
-            weekend_hours
+            weekend_hours,
+            webhook
         )
         flash('Your device has been added.')
         return redirect(url_for('index'))

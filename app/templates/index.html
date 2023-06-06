@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
+
     <h1>¡Hello, {{ current_user.username }}!</h1>
     <h2>Your devices:</h2>
     {% if current_user.devices %}
-    <ul>
+    <ul class="device">
         {% for device in current_user.devices %}
-            <li>
+            <li class="device">
                 Device Name: {{ device.device_name }} <br>
+                Device Protocol: {{ device.device_protocol }} <br>
+                {% if device.device_protocol == 'IFTTT' %}
+                    Webhook: {{ device.webhook }} <br>
+                {% endif %}
                 Max Hours: {{ device.max_hours }} <br>
                 Sleep Hours:
                 <ul>

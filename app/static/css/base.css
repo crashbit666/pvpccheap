@@ -1,0 +1,54 @@
+/* Reset some styles */
+body, h1, h2, h3, h4, h5, h6, p, ul, ol {
+    margin: 0;
+    padding: 0;
+}
+
+/* Set some basic styles */
+body {
+    font-family: Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Set basic styles for all links within .container */
+.container a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.container a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Set some styles for the navbar */
+.navbar {
+    background-color: #343a40;
+}
+
+.navbar-brand {
+    color: #fff;
+}
+
+.navbar-nav .nav-link {
+    color: #ddd;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #fff;
+}
+
+/* Style the container */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2em 1em;
+}
+
+/* Style alert messages */
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
