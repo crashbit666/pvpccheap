@@ -1,6 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db
+from app.electric_price_checker import Webhooks
 
 
 class User(UserMixin, db.Model):
@@ -45,6 +46,7 @@ class Device(db.Model):
     device_protocol = db.Column(db.String(32), index=True)
     webhook = db.Column(db.String(128))
     max_hours = db.Column(db.Integer)
+    status = db.Column(db.String(3), default='OFF')
     sleep_hours = db.relationship('SleepHours', backref='weekday_device', lazy='dynamic',
                                   primaryjoin="and_(Device.device_id==SleepHours.device_id, " 
                                               "SleepHours.is_weekend==False)", cascade="all, delete-orphan")
@@ -54,6 +56,16 @@ class Device(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))
     user = db.relationship('User', backref='devices')
 
+    def turn_on(self):
+        self.status = 'ON'
+        if self.device_protocol == 'IFTTT':
+            Webhooks().do_webhooks_request(self.webhook + '_down')
+
+    def turn_off(self):
+        self.status = 'OFF'
+        if self.device_protocol == 'IFTTT':
+            Webhooks().do_webhooks_request(self.webhook + '_high')
+
 
 class SleepHours(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -61,3 +73,16 @@ class SleepHours(db.Model):
     is_active = db.Column(db.Boolean)
     is_weekend = db.Column(db.Boolean)
     device_id = db.Column(db.Integer, db.ForeignKey('device.device_id'), nullable=False)
+
+
+class BestHours(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, unique=True, nullable=False)
+
+
+class Hour(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hour = db.Column(db.String(5), nullable=False)
+    best_hour_id = db.Column(db.Integer, db.ForeignKey('best_hours.id'), nullable=False)
+    type = db.Column(db.String(10), nullable=False)  # "today" or "tomorrow"
+
