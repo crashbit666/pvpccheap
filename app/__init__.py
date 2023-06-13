@@ -27,73 +27,6 @@ def load_user_from_request(request):
     return None
 
 
-@scheduler.task('cron', id='check_devices', minute='0')
-def check_devices():
-    from app.models import Device, SleepHours, Hour, BestHours
-    timezone = 'Europe/Madrid'
-    date, hour, weekday = DateTimeHelper(timezone).get_date()
-    hour_str = str(hour).zfill(2)
-    best_hours_record = BestHours.query.filter_by(date=date).first()
-
-    if best_hours_record is None:
-        # If prices are not found, update them
-        update_prices('today')
-        best_hours_record = BestHours.query.filter_by(date=date).first()
-
-    cheap_hours = [hour.hour for hour in Hour.query.filter_by(best_hour_id=best_hours_record.id, type='today').all()]
-    devices = Device.query.all()
-
-    for device in devices:
-        if weekday < 5:
-            active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours]
-        else:
-            active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours_weekend]
-
-        if hour_str in cheap_hours[:device.max_hours] and hour in active_hours:
-            device.turn_on()
-        else:
-            device.turn_off()
-
-        db.session.commit()
-
-
-@scheduler.task('cron', id='update_prices', hour=23, minute=45)
-def update_prices(day='tomorrow'):
-    from app.models import BestHours, Hour
-    timezone = 'Europe/Madrid'
-    date, _, _ = DateTimeHelper(timezone).get_date()
-
-    # Create BestHours record if it doesn't exist
-    best_hours_record = BestHours.query.filter_by(date=date).first()
-    if best_hours_record is None:
-        best_hours_record = BestHours(date=date)
-        db.session.add(best_hours_record)
-        db.session.commit()
-
-    if day == 'today':
-        try:
-            cheap_hours_today = ElectricPriceChecker(secrets, timezone).get_best_hours(date, days_ahead=0)
-
-            # Store today's best hours in the database
-            for hour in cheap_hours_today:
-                db.session.add(Hour(hour=hour, best_hour_id=best_hours_record.id, type='today'))
-
-            db.session.commit()
-        except ElectricPriceCheckerException as e:
-            print(f"Error connecting to ESIOS API. Exception: {e}")
-    elif day == 'tomorrow':
-        try:
-            cheap_hours_tomorrow = ElectricPriceChecker(secrets, timezone).get_best_hours(date, days_ahead=1)
-
-            # Store tomorrow's best hours in the database
-            for hour in cheap_hours_tomorrow:
-                db.session.add(Hour(hour=hour, best_hour_id=best_hours_record.id, type='tomorrow'))
-
-            db.session.commit()
-        except ElectricPriceCheckerException as e:
-            print(f"Error connecting to ESIOS API. Exception: {e}")
-
-
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = dbsecrets.get('DATABASE_SECRET_KEY')
@@ -104,6 +37,67 @@ def create_app():
     login_manager.login_view = 'login'
     scheduler.init_app(app)
     scheduler.start()
+
+    @scheduler.task('cron', id='check_devices', minute='0')
+    def check_devices():
+        from app.models import Device, SleepHours, Hour, BestHours
+        timezone = 'Europe/Madrid'
+        date, hour, weekday = DateTimeHelper(timezone).get_date()
+        hour_str = str(hour).zfill(2)
+
+        # Delete old records
+        old_hours_records = Hour.query.join(BestHours).filter(BestHours.date < date).all()
+        for record in old_hours_records:
+            db.session.delete(record)
+
+        old_best_hours_records = BestHours.query.filter(BestHours.date < date).all()
+        for record in old_best_hours_records:
+            db.session.delete(record)
+
+        db.session.commit()
+
+        # Search if today's best hours are already in DB
+        best_hours_record = BestHours.query.filter_by(date=date).first()
+
+        if best_hours_record is None:
+            # If prices are not found, update them
+            update_prices()
+            best_hours_record = BestHours.query.filter_by(date=date).first()
+
+        cheap_hours = [hour.hour for hour in Hour.query.filter_by(best_hour_id=best_hours_record.id).all()]
+        devices = Device.query.all()
+
+        for device in devices:
+            if weekday < 5:
+                active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours]
+            else:
+                active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours_weekend]
+
+            if hour_str in cheap_hours[:device.max_hours] and hour in active_hours:
+                device.turn_on()
+            else:
+                device.turn_off()
+
+            db.session.commit()
+
+    def update_prices():
+        from app.models import BestHours, Hour
+        timezone = 'Europe/Madrid'
+        date, _, _ = DateTimeHelper(timezone).get_date()
+
+        # Create BestHours record if it doesn't exist
+        best_hours_record = BestHours.query.filter_by(date=date).first()
+
+        try:
+            cheap_hours = ElectricPriceChecker(secrets, timezone).get_best_hours(date)
+
+            # Store today's best hours in the database
+            for hour in cheap_hours:
+                db.session.add(Hour(hour=hour, best_hour_id=best_hours_record.id))
+
+            db.session.commit()
+        except ElectricPriceCheckerException as e:
+            print(f"Error connecting to ESIOS API. Exception: {e}")
 
     with app.app_context():
         from . import routes, models

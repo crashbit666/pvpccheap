@@ -13,15 +13,12 @@ class ElectricPriceChecker:
         self.url = _secrets.get('URL')
         self.timezone = timezone
 
-    def get_best_hours(self, actual_date, days_ahead=0):
+    def get_best_hours(self, actual_date):
         local_timezone = pytz.timezone(self.timezone)
-        requested_date = actual_date + datetime.timedelta(days=days_ahead)
-        start_date = local_timezone.localize(datetime.datetime.combine(requested_date, datetime.time(0, 0, 0)),
+        start_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(0, 0, 0)),
                                              is_dst=None).isoformat()
-        print(start_date)   # Remove after debugging
-        end_date = local_timezone.localize(datetime.datetime.combine(requested_date, datetime.time(23, 0, 0)),
+        end_date = local_timezone.localize(datetime.datetime.combine(actual_date, datetime.time(23, 0, 0)),
                                            is_dst=None).isoformat()
-        print(end_date)     # Remove after debugging
 
         headers = {'Accept': 'application/json; application/vnd.esios-api-v2+json', 'Content-Type': 'application/json',
                    'Host': 'api.esios.ree.es', 'x-api-key': self.token}
@@ -48,13 +45,6 @@ class ElectricPriceChecker:
             hours.append(i[0])
 
         return hours
-
-    @staticmethod
-    def update_cheap_hours(current_day):
-        try:
-            return ElectricPriceChecker.get_best_hours(current_day)
-        except ElectricPriceCheckerException as e:
-            return []
 
 
 class ElectricPriceCheckerException(Exception):

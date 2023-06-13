@@ -84,5 +84,4 @@ class Hour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hour = db.Column(db.String(5), nullable=False)
     best_hour_id = db.Column(db.Integer, db.ForeignKey('best_hours.id'), nullable=False)
-    type = db.Column(db.String(10), nullable=False)  # "today" or "tomorrow"
 
