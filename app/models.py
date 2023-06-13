@@ -47,12 +47,14 @@ class Device(db.Model):
     webhook = db.Column(db.String(128))
     max_hours = db.Column(db.Integer)
     status = db.Column(db.String(3), default='OFF')
-    sleep_hours = db.relationship('SleepHours', backref='weekday_device', lazy='dynamic',
+    sleep_hours = db.relationship('SleepHours', back_populates='device', lazy='dynamic',
                                   primaryjoin="and_(Device.device_id==SleepHours.device_id, " 
-                                              "SleepHours.is_weekend==False)", cascade="all, delete-orphan")
-    sleep_hours_weekend = db.relationship('SleepHours', backref='weekend_device', lazy='dynamic',
+                                              "SleepHours.is_weekend==False)", cascade="all, delete-orphan",
+                                  overlaps="sleep_hours_weekend")
+    sleep_hours_weekend = db.relationship('SleepHours', back_populates='device', lazy='dynamic',
                                           primaryjoin="and_(Device.device_id==SleepHours.device_id, "
-                                                      "SleepHours.is_weekend==True)", cascade="all, delete-orphan")
+                                                      "SleepHours.is_weekend==True)", cascade="all, delete-orphan",
+                                          overlaps="sleep_hours")
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))
     user = db.relationship('User', backref='devices')
 
@@ -73,6 +75,7 @@ class SleepHours(db.Model):
     is_active = db.Column(db.Boolean)
     is_weekend = db.Column(db.Boolean)
     device_id = db.Column(db.Integer, db.ForeignKey('device.device_id'), nullable=False)
+    device = db.relationship('Device', back_populates='sleep_hours')
 
 
 class BestHours(db.Model):
