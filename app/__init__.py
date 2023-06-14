@@ -81,21 +81,24 @@ def create_app():
                 update_prices()
                 best_hours_record = BestHours.query.filter_by(date=date).first()
 
-            cheap_hours = [hour.hour for hour in Hour.query.filter_by(best_hour_id=best_hours_record.id).all()]
-            devices = Device.query.all()
+            if best_hours_record is not None:
+                cheap_hours = [hour.hour for hour in Hour.query.filter_by(best_hour_id=best_hours_record.id).all()]
+                devices = Device.query.all()
 
-            for device in devices:
-                if weekday < 5:
-                    active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours]
-                else:
-                    active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours_weekend]
+                for device in devices:
+                    if weekday < 5:
+                        active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours]
+                    else:
+                        active_hours = [sleep_hour.hour for sleep_hour in device.sleep_hours_weekend]
 
-                if hour_str in cheap_hours[:device.max_hours] and hour in active_hours:
-                    device.turn_on()
-                else:
-                    device.turn_off()
+                    if hour_str in cheap_hours[:device.max_hours] and hour in active_hours:
+                        device.turn_on()
+                    else:
+                        device.turn_off()
 
-                db.session.commit()
+                    db.session.commit()
+            else:
+                print("Doesn't exist a record for today's best hours.")
 
     def update_prices():
         with app.app_context():
