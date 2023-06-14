@@ -68,6 +68,18 @@ class Device(db.Model):
         if self.device_protocol == 'IFTTT':
             Webhooks().do_webhooks_request(self.webhook + '_high')
 
+    def to_dict(self):
+        return {
+            'id': self.device_id,
+            'name': self.device_name,
+            'protocol': self.device_protocol,
+            'webhook': self.webhook,
+            'max_hours': self.max_hours,
+            'status': self.status,
+            'sleep_hours': [sleep_hour.to_dict() for sleep_hour in self.sleep_hours],
+            'sleep_hours_weekend': [sleep_hour.to_dict() for sleep_hour in self.sleep_hours_weekend]
+        }
+
 
 class SleepHours(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -76,6 +88,14 @@ class SleepHours(db.Model):
     is_weekend = db.Column(db.Boolean)
     device_id = db.Column(db.Integer, db.ForeignKey('device.device_id'), nullable=False)
     device = db.relationship('Device', back_populates='sleep_hours')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hour': self.hour,
+            'is_active': self.is_active,
+            'is_weekend': self.is_weekend
+        }
 
 
 class BestHours(db.Model):
@@ -87,4 +107,3 @@ class Hour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hour = db.Column(db.String(5), nullable=False)
     best_hour_id = db.Column(db.Integer, db.ForeignKey('best_hours.id'), nullable=False)
-

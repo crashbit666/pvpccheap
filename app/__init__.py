@@ -1,15 +1,19 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_jwt_extended import JWTManager
 from flask_apscheduler import APScheduler
 from app.electric_price_checker import ElectricPriceChecker, ElectricPriceCheckerException
 from app.date_time_helper import DateTimeHelper
 from app.bbdd_secrets import dbsecrets
 from app.api_secrets import apisecrets as secrets
+from app.api_secrets import jwt_secrets as jwt_secrets
+from flask_cors import CORS
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 scheduler = APScheduler()
+jwt = JWTManager()
 
 
 @login_manager.user_loader
@@ -27,14 +31,26 @@ def load_user_from_request(request):
     return None
 
 
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    from app.models import User
+    identity = jwt_data["sub"]
+    return User.query.get(identity)
+
+
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"/*": {"origins": "*"}})  # Habilitar CORS aquí
+
     app.config['SECRET_KEY'] = dbsecrets.get('DATABASE_SECRET_KEY')
     app.config['SQLALCHEMY_DATABASE_URI'] = dbsecrets.get('SQLALCHEMY_DATABASE_URI')
+
+    app.config["JWT_SECRET_KEY"] = jwt_secrets.get('JWT_SECRET_KEY')
 
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'login'
+    jwt.init_app(app)
     scheduler.init_app(app)
     scheduler.start()
 
@@ -87,15 +103,17 @@ def create_app():
             timezone = 'Europe/Madrid'
             date, _, _ = DateTimeHelper(timezone).get_date()
 
-            # Create BestHours record if it doesn't exist
-            best_hours_record = BestHours.query.filter_by(date=date).first()
+            # Create a new BestHours record
+            new_best_hours_record = BestHours(date=date)
+            db.session.add(new_best_hours_record)
+            db.session.commit()
 
             try:
                 cheap_hours = ElectricPriceChecker(secrets, timezone).get_best_hours(date)
 
                 # Store today's best hours in the database
                 for hour in cheap_hours:
-                    db.session.add(Hour(hour=hour, best_hour_id=best_hours_record.id))
+                    db.session.add(Hour(hour=hour, best_hour_id=new_best_hours_record.id))
 
                 db.session.commit()
             except ElectricPriceCheckerException as e:

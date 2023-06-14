@@ -1,4 +1,5 @@
-from flask import render_template, flash, redirect, url_for, request, current_app
+from flask import render_template, flash, redirect, url_for, request, current_app, jsonify
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_login import current_user, login_user, logout_user, login_required
 from urllib.parse import urlsplit
 from app import db
@@ -90,3 +91,45 @@ def remove_device(device_id):
 def index():
     devices = current_user.devices
     return render_template('index.html', devices=devices)
+
+
+# API
+@current_app.route('/api/devices', methods=['GET'])
+@jwt_required()
+def get_devices():
+    # Obtain the identity of the current user from the JWT
+    current_user_id = get_jwt_identity()
+    # Search the user in the database
+    _current_user = User.query.get(current_user_id)
+
+    if _current_user is not None:
+        # Create a list with the devices of the user
+        devices = [device.to_dict() for device in _current_user.devices]
+        # Return devices in JSON format
+        return jsonify(devices), 200
+    else:
+        #  doesn't have any authenticated user, return 401
+        return {'message': 'User not authenticated'}, 401
+
+
+@current_app.route('/api/login', methods=['POST'])
+def api_login():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    username = request.json.get('username', None)
+    password = request.json.get('password', None)
+
+    if not username:
+        return jsonify({"msg": "Missing username parameter"}), 400
+    if not password:
+        return jsonify({"msg": "Missing password parameter"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if user is None or not user.check_password(password):
+        return jsonify({"msg": "Bad username or password"}), 401
+
+    # Si la autenticación es exitosa, crea el token de acceso JWT
+    access_token = create_access_token(identity=user.user_id)
+
+    return jsonify(access_token=access_token), 200
