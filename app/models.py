@@ -107,3 +107,17 @@ class Hour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hour = db.Column(db.String(5), nullable=False)
     best_hour_id = db.Column(db.Integer, db.ForeignKey('best_hours.id'), nullable=False)
+
+
+class ElectricityPrice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, unique=True, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.date,
+            'price': self.price
+        }
+
