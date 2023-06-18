@@ -24,7 +24,7 @@ class ElectricPriceChecker:
                    'Host': 'api.esios.ree.es', 'x-api-key': self.token}
 
         pkw = []
-        hours = []
+        hours_prices = []
 
         response = requests.get(f"{self.url}?start_date={start_date}&end_date={end_date}&geo_ids[]=8741",
                                 headers=headers)
@@ -42,9 +42,10 @@ class ElectricPriceChecker:
         # Next four lines format ESIOS data. Enumerate data for hours, sort and remove price.
         pkw = sorted(list(enumerate(pkw)), key=lambda k: k[1])
         for i in pkw:
-            hours.append(i[0])
+            hour_price = (i[0], i[1])  # Tuple with hour and price
+            hours_prices.append(hour_price)  # Add tuple to list
 
-        return hours
+        return hours_prices  # Return list of tuples with hour and price
 
 
 class ElectricPriceCheckerException(Exception):

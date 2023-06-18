@@ -93,6 +93,28 @@ def index():
     return render_template('index.html', devices=devices)
 
 
+@current_app.route('/electricity_price')
+def electricity_price():
+    # Get today's date
+    import datetime
+    from app.models import BestHours, Hour
+
+    today = datetime.date.today()
+
+    # Get the record for today's best hours
+    best_hours_record = BestHours.query.filter_by(date=today).first()
+
+    # If there's no record for today, then there are no prices to display
+    if best_hours_record is None:
+        electric_prices = []
+    else:
+        # Get the prices for each of today's best hours
+        electric_prices = Hour.query.filter_by(best_hour_id=best_hours_record.id).all()
+
+    # Pass the prices to the template
+    return render_template('electricity_price.html', electric_prices=electric_prices)
+
+
 # API
 @current_app.route('/api/devices', methods=['GET'])
 @jwt_required()

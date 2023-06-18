@@ -40,7 +40,7 @@ def user_lookup_callback(_jwt_header, jwt_data):
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, resources={r"/*": {"origins": "*"}})  # Habilitar CORS aquí
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     app.config['SECRET_KEY'] = dbsecrets.get('DATABASE_SECRET_KEY')
     app.config['SQLALCHEMY_DATABASE_URI'] = dbsecrets.get('SQLALCHEMY_DATABASE_URI')
@@ -106,6 +106,19 @@ def create_app():
             timezone = 'Europe/Madrid'
             date, _, _ = DateTimeHelper(timezone).get_date()
 
+            # DELETE this block on PRODUCTION !!!!!!!
+            """
+            existing_record = BestHours.query.filter_by(date=date).first()
+            if existing_record is not None:
+                # Deleting all the Hour records related to this BestHours record
+                Hour.query.filter_by(best_hour_id=existing_record.id).delete()
+                # Deleting the BestHours record
+                db.session.delete(existing_record)
+                db.session.commit()
+                print(f"Best prices for date {date} already existed and were deleted.")
+            # DELETE this block on PRODUCTION !!!!!!!
+            """
+
             # Create a new BestHours record
             new_best_hours_record = BestHours(date=date)
             db.session.add(new_best_hours_record)
@@ -115,8 +128,9 @@ def create_app():
                 cheap_hours = ElectricPriceChecker(secrets, timezone).get_best_hours(date)
 
                 # Store today's best hours in the database
-                for hour in cheap_hours:
-                    db.session.add(Hour(hour=hour, best_hour_id=new_best_hours_record.id))
+                for hour_price in cheap_hours:
+                    hour, price = hour_price
+                    db.session.add(Hour(hour=hour, price=price, best_hour_id=new_best_hours_record.id))
 
                 db.session.commit()
             except ElectricPriceCheckerException as e:

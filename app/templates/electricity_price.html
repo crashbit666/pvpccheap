@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Electricity Price</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Hour</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for hour_price in electric_prices %}
+            <tr>
+                <td>{{ hour_price.hour }}</td>
+                <td>{{ hour_price.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

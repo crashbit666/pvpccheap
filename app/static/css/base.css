@@ -52,3 +52,108 @@ body {
     background-color: #d1ecf1;
     border-color: #bee5eb;
 }
+
+body.dark-mode {
+    background-color: #343a40;
+    color: #fff;
+}
+
+.dark-mode .navbar {
+    background-color: #282c34;
+}
+
+body.dark-mode .device li {
+    background-color: #282c34;
+    color: #fff;
+}
+
+body.dark-mode h1, body.dark-mode h2 {
+    color: #fff;
+}
+
+body.dark-mode form input[type="submit"] {
+    background-color: #fff;
+    color: #343a40;
+}
+
+body.dark-mode form input[type="submit"]:hover {
+    background-color: #ddd;
+    color: #343a40;
+}
+
+body.dark-mode .add_device form {
+    background-color: #282c34;
+    color: #fff;
+}
+
+body.dark-mode h1 {
+    color: #fff;
+}
+
+body.dark-mode form label {
+    color: #fff;
+}
+
+body.dark-mode form input[type="text"], body.dark-mode form input[type="number"], body.dark-mode form select {
+    background-color: #343a40;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark-mode form input[type="submit"] {
+    background-color: #fff;
+    color: #343a40;
+}
+
+body.dark-mode form input[type="submit"]:hover {
+    background-color: #ddd;
+    color: #343a40;
+}
+
+.dark-mode .content-section {
+    background-color: #282c34;
+    color: #fff;
+}
+
+.dark-mode .table {
+    color: #fff;
+}
+
+.dark-mode .table thead th {
+    color: #fff;
+    border-bottom: 1px solid #fff;
+}
+
+.dark-mode .table tbody td {
+    color: #fff;
+    border-top: 1px solid #fff;
+}
+
+.dark-mode form {
+    color: #fff;
+}
+
+.dark-mode form input {
+    background-color: #282c34;
+    border: 1px solid #fff;
+    color: #fff;
+}
+
+.dark-mode form input::placeholder {
+    color: #ccc;
+}
+
+.dark-mode form input[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
+.dark-mode form input[type="submit"]:hover {
+    background-color: #0056b3;
+    border: 1px solid #fff;
+}
+
+.dark-mode form label {
+    color: #fff;
+}
