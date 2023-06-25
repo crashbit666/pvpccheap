@@ -116,8 +116,8 @@ def create_app():
                 db.session.delete(existing_record)
                 db.session.commit()
                 print(f"Best prices for date {date} already existed and were deleted.")
-            # DELETE this block on PRODUCTION !!!!!!! IMPORTANT !!!!!!!
             """
+            # DELETE this block on PRODUCTION !!!!!!! IMPORTANT !!!!!!!
 
             # Create a new BestHours record
             new_best_hours_record = BestHours(date=date)

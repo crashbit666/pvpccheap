@@ -8,31 +8,73 @@
     {% if current_user.devices %}
     <ul class="device">
         {% for device in current_user.devices %}
-            <li class="device">
-                Device Name: {{ device.device_name }} <br>
-                Device Protocol: {{ device.device_protocol }} <br>
-                {% if device.device_protocol == 'IFTTT' %}
-                    Webhook: {{ device.webhook }} <br>
-                {% endif %}
-                Max Hours: {{ device.max_hours }} <br>
-                Sleep Hours:
-                <ul>
-                    {% for sleep_hour in device.sleep_hours %}
-                        <li>{{ sleep_hour.hour }} : Active? {{ sleep_hour.is_active }}</li>
-                    {% endfor %}
-                </ul>
-                Sleep Hours Weekend:
-                <ul>
-                    {% for sleep_hour_weekend in device.sleep_hours_weekend %}
-                        <li>{{ sleep_hour_weekend.hour }} : Active? {{ sleep_hour_weekend.is_active }}</li>
-                    {% endfor %}
-                </ul>
+            <li class="device" data-device-id="{{ device.id }}">
+                <div class="device-info">
+                    Device Name: {{ device.device_name }} <br>
+                    Device Protocol: {{ device.device_protocol }} <br>
+                    {% if device.device_protocol == 'IFTTT' %}
+                        Webhook: {{ device.webhook }} <br>
+                    {% endif %}
+                    Max Hours: {{ device.max_hours }} <br>
+                </div>
+
+                <!-- Weekday's clock -->
+                <div class="sleep-bar">
+                    <div class="hour-labels">
+                      {% for hour in range(24) %}
+                        <div class="hour-label">{{ hour }}</div>
+                      {% endfor %}
+                    </div>
+
+                    <div class="sleep-hours">
+                        {% set active_hours = device.sleep_hours|map(attribute='hour')|list %}
+                        {% for hour in range(24) %}
+                            {% set next_hour = hour + 1 %}
+                            {% if hour in active_hours %}
+                                {% if next_hour in active_hours %}
+                                    <div class="sleep-hour active" style="left: {{ hour * 4.1667 }}%; width: 4.1667%;"></div>
+                                {% else %}
+                                    <div class="sleep-hour active" style="left: {{ hour * 4.1667 }}%; width: {{ (next_hour - hour) * 4.1667 }}%;"></div>
+                                {% endif %}
+                            {% else %}
+                                <div class="sleep-hour" style="left: {{ hour * 4.1667 }}%;"></div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Weekend's clock -->
+                <div class="sleep-bar">
+                    <div class="hour-labels">
+                      {% for hour in range(24) %}
+                        <div class="hour-label">{{ hour }}</div>
+                      {% endfor %}
+                    </div>
+
+                    <div class="sleep-hours">
+                        {% set active_hours = device.sleep_hours_weekend|map(attribute='hour')|list %}
+                        {% for hour in range(24) %}
+                            {% set next_hour = hour + 1 %}
+                            {% if hour in active_hours %}
+                                {% if next_hour in active_hours %}
+                                    <div class="sleep-hour active" style="left: {{ hour * 4.1667 }}%; width: 4.1667%;"></div>
+                                {% else %}
+                                    <div class="sleep-hour active" style="left: {{ hour * 4.1667 }}%; width: {{ (next_hour - hour) * 4.1667 }}%;"></div>
+                                {% endif %}
+                            {% else %}
+                                <div class="sleep-hour" style="left: {{ hour * 4.1667 }}%;"></div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <form action="{{ url_for('remove_device', device_id=device.device_id) }}" method="post">
                     <input type="submit" value="Remove Device">
                 </form>
             </li>
         {% endfor %}
     </ul>
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     {% else %}
     <p>You don't have any device registered.</p>
     {% endif %}

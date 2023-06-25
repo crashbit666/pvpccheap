@@ -151,7 +151,58 @@ def api_login():
     if user is None or not user.check_password(password):
         return jsonify({"msg": "Bad username or password"}), 401
 
-    # Si la autenticación es exitosa, crea el token de acceso JWT
+    # If authentication is successful, create a JWT token
     access_token = create_access_token(identity=user.user_id)
 
     return jsonify(access_token=access_token), 200
+
+
+@current_app.route('/api/electricity_price', methods=['GET'])
+def get_electricity_price():
+    import datetime
+    from app.models import BestHours, Hour
+
+    today = datetime.date.today()
+    best_hours_record = BestHours.query.filter_by(date=today).first()
+
+    if best_hours_record is None:
+        electric_prices = []
+    else:
+        electric_prices = Hour.query.filter_by(best_hour_id=best_hours_record.id).all()
+
+    # Transform results into JSON format
+    electric_prices = [{'hour': x.hour, 'price': x.price} for x in electric_prices]
+
+    return jsonify(electric_prices)
+
+
+@current_app.route('/api/sleep_hours/<int:device_id>', methods=['GET'])
+@jwt_required()
+def get_sleep_hours(device_id):
+    # Obtain the identity of the current user from the JWT
+    current_user_id = get_jwt_identity()
+    # Search the user in the database
+    _current_user = User.query.get(current_user_id)
+
+    if _current_user is not None:
+        # Find the device with the given device_id
+        device = Device.query.filter_by(device_id=device_id, user=_current_user).first()
+
+        if device is not None:
+            # Get the sleep hours for the device
+            sleep_hours = device.sleep_hours.all()
+            sleep_hours_weekend = device.sleep_hours_weekend.all()
+
+            # Create dictionaries for the sleep hours
+            sleep_hours_data = [{'hour': hour.hour, 'is_active': hour.is_active} for hour in sleep_hours]
+            sleep_hours_weekend_data = [{'hour': hour.hour, 'is_active': hour.is_active} for hour in sleep_hours_weekend]
+
+            # Return the sleep hours in JSON format
+            return jsonify({'sleep_hours': sleep_hours_data, 'sleep_hours_weekend': sleep_hours_weekend_data}), 200
+        else:
+            # Device not found
+            return jsonify({'message': 'Device not found'}), 404
+    else:
+        # User not authenticated
+        return jsonify({'message': 'User not authenticated'}), 401
+
