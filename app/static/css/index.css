@@ -108,13 +108,36 @@ form input[type="submit"]:hover {
 }
 
 .active-hour-label {
-  color: red;
+  color: #ff0000;
   font-weight: bold;
 }
-
 
 .sleep-hour.active .hour-label,
 .sleep-hour.active-hour-label {
   color: red;
   font-weight: bold;
+}
+
+/* Dark mode */
+body.dark-mode .sleep-hour {
+  background-color: #555;
+  border: 1px solid #444;
+}
+
+body.dark-mode .sleep-hour.active,
+body.dark-mode .sleep-hour.active-weekend {
+  background-color: rgba(0, 159, 225, 0.22);
+  border: none;
+}
+
+body.dark-mode .sleep-bar {
+  background-color: #333;
+}
+
+body.dark-mode .hour-label {
+    color: red;
+}
+
+body.dark-mode .hour-label.active {
+    color: green;
 }
