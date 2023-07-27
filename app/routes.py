@@ -115,7 +115,7 @@ def electricity_price():
     return render_template('electricity_price.html', electric_prices=electric_prices)
 
 
-# API
+# ---------------- API ----------------
 @current_app.route('/api/devices', methods=['GET'])
 @jwt_required()
 def get_devices():
