@@ -1,9 +1,18 @@
 {% extends "base.html" %}
+{% block extra_js_head_for_electricity_price %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/electricity_price.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+    <script
+            type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js">
+    </script>
+{% endblock %}
 
 {% block content %}
+
 <div class="content-section">
     <h2>Electricity Price</h2>
-    <table class="table">
+    <table class="table" id="electricPricesTable">
         <thead>
             <tr>
                 <th>Hour</th>
@@ -20,4 +29,17 @@
         </tbody>
     </table>
 </div>
+
+<script>
+$(document).ready( function () {
+    $('#electricPricesTable').DataTable({
+        lengthChange: false,
+        pageLength: 24,
+        searching: false,
+        paging: false,
+        info: false
+    });
+});
+</script>
+
 {% endblock content %}

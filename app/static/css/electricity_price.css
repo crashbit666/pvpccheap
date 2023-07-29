@@ -1,0 +1,43 @@
+/* electricity_price.css */
+
+.content-section {
+    margin: 30px 0;
+}
+
+#electricPricesTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+#electricPricesTable th,
+#electricPricesTable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+#electricPricesTable th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.dark-mode .content-section,
+.dark-mode #electricPricesTable_wrapper,
+.dark-mode #electricPricesTable_wrapper .dataTables_filter,
+.dark-mode #electricPricesTable_wrapper .dataTables_paginate {
+    background-color: #343a40;
+    color: #ddd;
+}
+
+.dark-mode #electricPricesTable th,
+.dark-mode #electricPricesTable td,
+.dark-mode #electricPricesTable tbody tr {    /* Add this selector */
+    border: 1px solid #999;
+    color: #ddd;
+    background-color: #343a40;    /* Set the background color */
+}
+
+.dark-mode #electricPricesTable th {
+    background-color: #666;
+}
