@@ -205,4 +205,3 @@ def get_sleep_hours(device_id):
     else:
         # User not authenticated
         return jsonify({'message': 'User not authenticated'}), 401
-
