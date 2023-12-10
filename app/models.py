@@ -62,11 +62,15 @@ class Device(db.Model):
         self.status = 'ON'
         if self.device_protocol == 'IFTTT':
             Webhooks().do_webhooks_request(self.webhook + '_down')
+        elif self.device_protocol == 'GoogleAssistant':
+            pass
 
     def turn_off(self):
         self.status = 'OFF'
         if self.device_protocol == 'IFTTT':
             Webhooks().do_webhooks_request(self.webhook + '_high')
+        elif self.device_protocol == 'Google Assistant':
+            pass
 
     def to_dict(self):
         return {
